@@ -1,18 +1,25 @@
 "use client";
 
-import { useFormStatus } from "react-dom";
 import { socialSignIn } from "@/actions";
 import { Button } from "@/components/ui/button";
+import { useState } from "react";
 
-function SignInButtonInner() {
-  const { pending } = useFormStatus();
+export function SignInButton() {
+  const [pending, setPending] = useState(false);
+
+  const handleClick = async () => {
+    setPending(true);
+    await socialSignIn();
+    setPending(false);
+  };
 
   return (
     <Button
-      type="submit"
+      type="button"
       disabled={pending}
       variant="outline"
       className="w-full gap-2"
+      onClick={handleClick}
     >
       <svg viewBox="0 0 24 24" className="size-4" aria-hidden="true">
         <path
@@ -32,15 +39,7 @@ function SignInButtonInner() {
           fill="#EA4335"
         />
       </svg>
-      {pending ? "Redirecting…" : "Sign in with Google"}
+      {pending ? "Signing in…" : "Sign in with Google"}
     </Button>
-  );
-}
-
-export function SignInButton() {
-  return (
-    <form action={socialSignIn}>
-      <SignInButtonInner />
-    </form>
   );
 }

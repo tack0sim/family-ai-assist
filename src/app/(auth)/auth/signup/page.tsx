@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { LoginForm } from "@/components/login-form";
+import { SignupForm } from "@/components/signup-form";
 import { HouseIcon } from "lucide-react";
 
-export default function LoginPage() {
+export default function SignupPage() {
   return (
     <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-muted p-6 md:p-10">
       <div className="flex w-full max-w-xs flex-col gap-6">
@@ -15,7 +15,7 @@ export default function LoginPage() {
           </div>
           Family AI Assist
         </Link>
-        <LoginForm />
+        <SignupForm />
       </div>
     </div>
   );
