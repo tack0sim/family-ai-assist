@@ -47,7 +47,7 @@ CREATE POLICY family_members_select_member ON public.family_members
 
 -- Block direct INSERT/UPDATE from client-side by default. Service role bypasses RLS.
 CREATE POLICY family_members_block_insert ON public.family_members
-  FOR INSERT USING (false);
+  FOR INSERT WITH CHECK (false);
 
 CREATE POLICY family_members_block_update ON public.family_members
   FOR UPDATE USING (false);
