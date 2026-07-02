@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { SignupForm } from "@/components/signup-form";
+import { SignupForm } from "@/components/auth/signup-form.client";
 import { HouseIcon } from "lucide-react";
 
 export default function SignupPage() {

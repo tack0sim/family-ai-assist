@@ -17,12 +17,12 @@ import {
   FieldSeparator,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { SignInButton } from "./signin-button";
+import { SignInButton } from "./signin-button.client";
 import Link from "next/link";
 import { signUp } from "@/actions";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { useState } from "react";
-import { Spinner } from "./ui/spinner";
+import { Spinner } from "../ui/spinner";
 
 export function SignupForm({
   className,

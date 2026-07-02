@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LoginForm } from "@/components/login-form";
+import { LoginForm } from "@/components/auth/login-form.client";
 import { HouseIcon } from "lucide-react";
 
 export default function LoginPage() {
