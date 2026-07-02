@@ -1,6 +1,7 @@
 import { HeroSection } from "@/components/hero-section";
 import { IntroSection } from "@/components/intro-section";
 import { createClient } from "@/lib/supabase/server";
+import { getUserDisplayName } from "@/lib/supabase/user";
 
 export default async function Home() {
   const supabase = await createClient();
@@ -9,7 +10,7 @@ export default async function Home() {
   } = await supabase.auth.getUser();
 
   const isAuthenticated = !!user;
-  const userName = user?.user_metadata?.full_name ?? user?.email;
+  const userName = getUserDisplayName(user);
 
   return (
     <>
