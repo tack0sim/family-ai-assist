@@ -10,13 +10,11 @@ export function CalendarUI() {
   return (
     <div className="flex justify-center">
       <Calendar
-        value={selectedDate}
-        onChange={(date) => {
-          if (date instanceof Date) {
-            setSelectedDate(date);
-          }
-        }}
         className="rounded-lg border border-border p-4"
+        onChange={(selectedDate) => {
+          setSelectedDate(selectedDate as Date);
+        }}
+        value={selectedDate}
       />
     </div>
   );
