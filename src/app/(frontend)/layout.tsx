@@ -34,14 +34,14 @@ export default async function AppLayout({
 
   return (
     <SidebarProvider>
-      <div className="flex grow flex-col">
+      <body className="flex grow flex-col">
         <AppSidebar user={user ?? undefined} />
         <SidebarInset>
           <Header isAuthenticated={true} />
           {children}
           <Footer />
         </SidebarInset>
-      </div>
+      </body>
     </SidebarProvider>
   );
 }
