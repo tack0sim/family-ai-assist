@@ -26,23 +26,22 @@ export default async function AppLayout({
     return (
       <>
         <Header isAuthenticated={false} />
-        <div>{children}</div>
+        <div className="flex grow flex-col">{children}</div>
+        <Footer />
       </>
     );
   }
 
   return (
-    <div>
-      <SidebarProvider>
-        <body className="flex min-h-full flex-col">
-          <AppSidebar user={user ?? undefined} />
-          <SidebarInset>
-            <Header isAuthenticated={true} />
-            {children}
-            <Footer />
-          </SidebarInset>
-        </body>
-      </SidebarProvider>
-    </div>
+    <SidebarProvider>
+      <div className="flex grow flex-col">
+        <AppSidebar user={user ?? undefined} />
+        <SidebarInset>
+          <Header isAuthenticated={true} />
+          {children}
+          <Footer />
+        </SidebarInset>
+      </div>
+    </SidebarProvider>
   );
 }
