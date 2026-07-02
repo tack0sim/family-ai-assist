@@ -1,22 +1,10 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "../globals.css";
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppSidebar } from "@/components/app-sidebar.client";
-import { createClient } from "@/lib/supabase/server";
-import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+import { Header } from "@/components/layout/header";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -36,26 +24,17 @@ export default async function AppLayout({
 
   if (!session) {
     return (
-      <html
-        lang="en"
-        className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-      >
-        <body className="min-h-full flex flex-col">
-          <Header isAuthenticated={false} />
-          {children}
-          <Footer />
-        </body>
-      </html>
+      <>
+        <Header isAuthenticated={false} />
+        <div>{children}</div>
+      </>
     );
   }
 
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
+    <div>
       <SidebarProvider>
-        <body className="min-h-full flex flex-col">
+        <body className="flex min-h-full flex-col">
           <AppSidebar user={user ?? undefined} />
           <SidebarInset>
             <Header isAuthenticated={true} />
@@ -64,6 +43,6 @@ export default async function AppLayout({
           </SidebarInset>
         </body>
       </SidebarProvider>
-    </html>
+    </div>
   );
 }
