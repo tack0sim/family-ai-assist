@@ -17,11 +17,11 @@ import {
   FieldSeparator,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { SignInButton } from "./signin-button";
+import { SignInButton } from "./signin-button.client";
 import Link from "next/link";
 import { signIn } from "@/actions";
 import { useState } from "react";
-import { Spinner } from "./ui/spinner";
+import { Spinner } from "../ui/spinner";
 
 export function LoginForm({
   className,

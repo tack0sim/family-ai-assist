@@ -2,9 +2,24 @@
 
 import { socialSignIn } from "@/actions";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { useState } from "react";
 
-export function SignInButton() {
+interface SignInButtonProps {
+  className?: string;
+  variantOverride?:
+    | "default"
+    | "destructive"
+    | "outline"
+    | "secondary"
+    | "ghost"
+    | "link";
+}
+
+export function SignInButton({
+  className,
+  variantOverride,
+}: SignInButtonProps) {
   const [pending, setPending] = useState(false);
 
   const handleClick = async () => {
@@ -17,8 +32,8 @@ export function SignInButton() {
     <Button
       type="button"
       disabled={pending}
-      variant="outline"
-      className="w-full gap-2"
+      variant={variantOverride ?? "outline"}
+      className={cn("w-full gap-2", className)}
       onClick={handleClick}
     >
       <svg viewBox="0 0 24 24" className="size-4" aria-hidden="true">
