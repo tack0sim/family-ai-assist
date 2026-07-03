@@ -7,14 +7,20 @@ import { createServiceRoleClient } from "@/lib/supabase/service";
 
 export async function socialSignIn() {
   const header = await headers();
-  const origin = header.get("origin") ?? header.get("host") ?? "";
+
+  // Priority: explicit env var > VERCEL_URL > headers > localhost fallback
+  const baseUrl =
+    process.env.NEXT_PUBLIC_BASE_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null) ||
+    header.get("origin") ||
+    (process.env.NODE_ENV === "development" ? "http://localhost:3000" : "");
 
   const supabase = await createClient();
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: `${origin}/auth/callback`,
+      redirectTo: `${baseUrl}/auth/callback`,
       scopes: "openid email profile",
       queryParams: {
         access_type: "offline",
