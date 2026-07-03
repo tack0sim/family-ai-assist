@@ -11,15 +11,83 @@ describe("getBaseURL", () => {
   };
 
   // Save original env vars
-  const originalEnv = process.env;
+  const originalNodeEnv = process.env.NODE_ENV;
+  const originalVercel = process.env.VERCEL;
 
-  afterEach(() => {
-    // Restore env vars
-    process.env = originalEnv;
+  beforeEach(() => {
+    // Clear test-relevant env vars before each test
+    delete process.env.VERCEL_URL;
+    delete process.env.NEXT_PUBLIC_BASE_URL;
+    delete process.env.VERCEL;
+    process.env.NODE_ENV = "test";
   });
 
-  describe("x-forwarded-host header (highest priority)", () => {
-    test("returns URL from x-forwarded-host header", () => {
+  afterEach(() => {
+    // Clean up after each test
+    delete process.env.VERCEL_URL;
+    delete process.env.NEXT_PUBLIC_BASE_URL;
+    delete process.env.VERCEL;
+    process.env.NODE_ENV = originalNodeEnv;
+  });
+
+  describe("local development (highest priority)", () => {
+    test("always returns localhost in development mode", () => {
+      process.env.NODE_ENV = "development";
+
+      const headers = createHeaders({});
+
+      const result = getBaseURL(headers);
+      expect(result).toBe("http://localhost:3000");
+    });
+
+    test("prefers localhost over NEXT_PUBLIC_BASE_URL in development", () => {
+      process.env.NODE_ENV = "development";
+      process.env.NEXT_PUBLIC_BASE_URL = "https://preview.vercel.app";
+
+      const headers = createHeaders({});
+
+      const result = getBaseURL(headers);
+      expect(result).toBe("http://localhost:3000");
+    });
+
+    test("prefers localhost over origin header in development", () => {
+      process.env.NODE_ENV = "development";
+
+      const headers = createHeaders({
+        origin: "https://preview.vercel.app",
+      });
+
+      const result = getBaseURL(headers);
+      expect(result).toBe("http://localhost:3000");
+    });
+
+    test("prefers localhost over x-forwarded-host in development (non-Vercel)", () => {
+      process.env.NODE_ENV = "development";
+
+      const headers = createHeaders({
+        "x-forwarded-host": "example.com",
+      });
+
+      const result = getBaseURL(headers);
+      expect(result).toBe("http://localhost:3000");
+    });
+
+    test("does NOT use localhost on Vercel preview deployments", () => {
+      process.env.NODE_ENV = "development";
+      process.env.VERCEL = "1";
+      process.env.VERCEL_URL = "my-app-preview.vercel.app";
+
+      const headers = createHeaders({});
+
+      const result = getBaseURL(headers);
+      expect(result).toBe("https://my-app-preview.vercel.app");
+    });
+  });
+
+  describe("x-forwarded-host header (Vercel custom domain)", () => {
+    test("returns URL from x-forwarded-host header on Vercel", () => {
+      process.env.VERCEL = "1";
+
       const headers = createHeaders({
         "x-forwarded-host": "example.com",
       });
@@ -28,7 +96,8 @@ describe("getBaseURL", () => {
       expect(result).toBe("https://example.com");
     });
 
-    test("prefers x-forwarded-host over VERCEL_URL", () => {
+    test("prefers x-forwarded-host over VERCEL_URL on Vercel", () => {
+      process.env.VERCEL = "1";
       process.env.VERCEL_URL = "vercel-auto-domain.vercel.app";
 
       const headers = createHeaders({
@@ -40,6 +109,8 @@ describe("getBaseURL", () => {
     });
 
     test("removes trailing slash from x-forwarded-host", () => {
+      process.env.VERCEL = "1";
+
       const headers = createHeaders({
         "x-forwarded-host": "example.com/",
       });
@@ -50,7 +121,8 @@ describe("getBaseURL", () => {
   });
 
   describe("VERCEL_URL environment variable", () => {
-    test("returns URL from VERCEL_URL when x-forwarded-host missing", () => {
+    test("returns URL from VERCEL_URL when x-forwarded-host missing on Vercel", () => {
+      process.env.VERCEL = "1";
       process.env.VERCEL_URL = "my-app.vercel.app";
 
       const headers = createHeaders({});
@@ -60,6 +132,7 @@ describe("getBaseURL", () => {
     });
 
     test("removes trailing slash from VERCEL_URL", () => {
+      process.env.VERCEL = "1";
       process.env.VERCEL_URL = "my-app.vercel.app/";
 
       const headers = createHeaders({});
@@ -68,7 +141,8 @@ describe("getBaseURL", () => {
       expect(result).toBe("https://my-app.vercel.app");
     });
 
-    test("prefers VERCEL_URL over NEXT_PUBLIC_BASE_URL", () => {
+    test("prefers VERCEL_URL over NEXT_PUBLIC_BASE_URL on Vercel", () => {
+      process.env.VERCEL = "1";
       process.env.VERCEL_URL = "my-app.vercel.app";
       process.env.NEXT_PUBLIC_BASE_URL = "https://explicit.com";
 
@@ -158,14 +232,16 @@ describe("getBaseURL", () => {
       );
     });
 
-    test("throws error when x-forwarded-host lacks protocol", () => {
+    test("adds https:// protocol when x-forwarded-host lacks protocol", () => {
+      process.env.VERCEL = "1";
+
       const headers = createHeaders({
-        "x-forwarded-host": "example.com", // Missing https://
+        "x-forwarded-host": "example.com", // Missing https:// is OK
       });
 
-      expect(() => getBaseURL(headers)).toThrow(
-        "must start with http:// or https://"
-      );
+      // x-forwarded-host is always treated as a hostname and https:// is added
+      const result = getBaseURL(headers);
+      expect(result).toBe("https://example.com");
     });
   });
 
@@ -217,7 +293,8 @@ describe("getBaseURL", () => {
   });
 
   describe("priority order verification", () => {
-    test("priority: x-forwarded-host > VERCEL_URL > NEXT_PUBLIC_BASE_URL > origin", () => {
+    test("priority on Vercel: x-forwarded-host > VERCEL_URL > NEXT_PUBLIC_BASE_URL > origin", () => {
+      process.env.VERCEL = "1";
       process.env.VERCEL_URL = "vercel.app";
       process.env.NEXT_PUBLIC_BASE_URL = "https://explicit.com";
 
@@ -228,6 +305,30 @@ describe("getBaseURL", () => {
 
       const result = getBaseURL(headers);
       expect(result).toBe("https://custom.com");
+    });
+
+    test("priority in development: always localhost regardless of other vars", () => {
+      process.env.NODE_ENV = "development";
+      process.env.NEXT_PUBLIC_BASE_URL = "https://explicit.com";
+
+      const headers = createHeaders({
+        origin: "https://origin.com",
+      });
+
+      const result = getBaseURL(headers);
+      expect(result).toBe("http://localhost:3000");
+    });
+
+    test("priority in non-Vercel production: NEXT_PUBLIC_BASE_URL > origin", () => {
+      process.env.NODE_ENV = "production";
+      process.env.NEXT_PUBLIC_BASE_URL = "https://explicit.com";
+
+      const headers = createHeaders({
+        origin: "https://origin.com",
+      });
+
+      const result = getBaseURL(headers);
+      expect(result).toBe("https://explicit.com");
     });
   });
 });

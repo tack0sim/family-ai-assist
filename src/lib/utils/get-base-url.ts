@@ -1,12 +1,14 @@
 /**
  * Resolves the base URL for the application.
  *
- * Priority chain:
- * 1. x-forwarded-host header (Vercel custom domain)
- * 2. VERCEL_URL environment variable (Vercel auto-generated domain)
- * 3. NEXT_PUBLIC_BASE_URL environment variable (explicit config)
- * 4. origin header (browser-sent origin)
- * 5. Throws error if all fail
+ * Environment-aware priority chain:
+ * - Local development: Always uses http://localhost:3000
+ * - Vercel deployments:
+ *   1. x-forwarded-host header (custom domain)
+ *   2. VERCEL_URL environment variable (auto-generated domain)
+ * - Other deployments:
+ *   1. NEXT_PUBLIC_BASE_URL environment variable
+ *   2. origin header (fallback)
  *
  * The returned URL is normalized (trailing slashes removed) and validated
  * to have a protocol (http:// or https://).
@@ -15,25 +17,55 @@
  * @returns The base URL as a normalized string (e.g., "https://example.com")
  * @throws Error with actionable message if unable to resolve base URL
  */
-export function getBaseURL(headers: Headers): string {
-  // Try x-forwarded-host (Vercel custom domain via load balancer)
-  const forwardedHost = headers.get("x-forwarded-host");
-  if (forwardedHost) {
-    return normalizeUrl(`https://${forwardedHost}`);
+export function getBaseURL(
+  headers: Headers | HeadersInit | { get(name: string): string | null }
+): string {
+  // Normalize headers to a callable interface (handles Headers object, plain objects, etc)
+  const getHeader = (name: string): string | null => {
+    if (headers && typeof (headers as any).get === "function") {
+      return (headers as any).get(name);
+    }
+    if (headers && typeof headers === "object" && name in headers) {
+      return (headers as Record<string, string>)[name] || null;
+    }
+    return null;
+  };
+
+  // Environment detection
+  const isVercelDeployment =
+    typeof process !== "undefined" && !!process.env.VERCEL;
+  const isDevelopment =
+    typeof process !== "undefined" && process.env.NODE_ENV === "development";
+
+  // Local development: always use localhost
+  // This prevents NEXT_PUBLIC_BASE_URL from redirecting local OAuth to production
+  if (isDevelopment && !isVercelDeployment) {
+    return "http://localhost:3000";
   }
 
-  // Try VERCEL_URL (Vercel auto-generated domain)
-  if (process.env.VERCEL_URL) {
-    return normalizeUrl(`https://${process.env.VERCEL_URL}`);
+  // Vercel deployments: prioritize custom domain or auto-generated URL
+  if (isVercelDeployment) {
+    const forwardedHost = getHeader("x-forwarded-host");
+    if (forwardedHost) {
+      return normalizeUrl(`https://${forwardedHost}`);
+    }
+
+    const vercelUrl = process.env.VERCEL_URL;
+    if (vercelUrl) {
+      return normalizeUrl(`https://${vercelUrl}`);
+    }
   }
 
-  // Try explicit config (works for any deployment)
-  if (process.env.NEXT_PUBLIC_BASE_URL) {
-    return normalizeUrl(process.env.NEXT_PUBLIC_BASE_URL);
+  // Other deployments: use explicit config or origin header
+  const publicBaseUrl =
+    typeof process === "undefined"
+      ? undefined
+      : process.env.NEXT_PUBLIC_BASE_URL;
+  if (publicBaseUrl) {
+    return normalizeUrl(publicBaseUrl);
   }
 
-  // Try origin header (browser-sent, can be spoofed but better than nothing)
-  const origin = headers.get("origin");
+  const origin = getHeader("origin");
   if (origin) {
     return normalizeUrl(origin);
   }
