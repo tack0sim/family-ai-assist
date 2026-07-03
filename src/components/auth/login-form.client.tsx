@@ -1,6 +1,8 @@
 "use client";
 
-import { cn } from "@/lib/utils";
+import Link from "next/link";
+import { useState } from "react";
+import { signIn } from "@/actions";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -17,11 +19,9 @@ import {
   FieldSeparator,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { SignInButton } from "./signin-button.client";
-import Link from "next/link";
-import { signIn } from "@/actions";
-import { useState } from "react";
+import { cn } from "@/lib/utils";
 import { Spinner } from "../ui/spinner";
+import { SignInButton } from "./signin-button.client";
 
 export function LoginForm({
   className,
@@ -39,7 +39,7 @@ export function LoginForm({
     } catch (error) {
       setLoading(false);
       setError(
-        error instanceof Error ? error.message : "An unexpected error occurred",
+        error instanceof Error ? error.message : "An unexpected error occurred"
       );
     }
   };
@@ -64,17 +64,17 @@ export function LoginForm({
                 <Input
                   id="email"
                   name="email"
-                  type="email"
                   placeholder="m@example.com"
                   required
+                  type="email"
                 />
               </Field>
               <Field>
                 <FieldLabel htmlFor="password">Password</FieldLabel>
-                <Input id="password" name="password" type="password" required />
+                <Input id="password" name="password" required type="password" />
               </Field>
               <Field>
-                <Button type="submit" disabled={loading}>
+                <Button disabled={loading} type="submit">
                   {loading ? (
                     <>
                       <Spinner className="mr-2" />
@@ -84,7 +84,7 @@ export function LoginForm({
                     "Login"
                   )}
                 </Button>
-                {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+                {error && <p className="mt-2 text-red-600 text-sm">{error}</p>}
                 <FieldDescription className="text-center">
                   Don&apos;t have an account?{" "}
                   <Link href="/auth/signup">Sign up</Link>

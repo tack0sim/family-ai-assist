@@ -1,9 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { socialSignIn } from "@/actions";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
 
 interface SignInButtonProps {
   className?: string;
@@ -30,13 +30,13 @@ export function SignInButton({
 
   return (
     <Button
-      type="button"
-      disabled={pending}
-      variant={variantOverride ?? "outline"}
       className={cn("w-full gap-2", className)}
+      disabled={pending}
       onClick={handleClick}
+      type="button"
+      variant={variantOverride ?? "outline"}
     >
-      <svg viewBox="0 0 24 24" className="size-4" aria-hidden="true">
+      <svg aria-hidden="true" className="size-4" viewBox="0 0 24 24">
         <path
           d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
           fill="#4285F4"

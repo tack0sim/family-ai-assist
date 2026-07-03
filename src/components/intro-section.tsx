@@ -1,4 +1,6 @@
+import { ArrowRight } from "lucide-react";
 import Link from "next/link";
+import { CalendarUI } from "./calendar.client";
 import { Button } from "./ui/button";
 import {
   Card,
@@ -7,8 +9,6 @@ import {
   CardHeader,
   CardTitle,
 } from "./ui/card";
-import { CalendarUI } from "./calendar.client";
-import { ArrowRight } from "lucide-react";
 
 interface IntroSectionProps {
   userName?: string;
@@ -17,17 +17,17 @@ interface IntroSectionProps {
 export function IntroSection({ userName }: IntroSectionProps) {
   return (
     <section className="flex flex-1 flex-col items-center justify-center px-4 py-16">
-      <div className="max-w-4xl w-full space-y-8">
+      <div className="w-full max-w-4xl space-y-8">
         <div className="space-y-4">
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">
+          <h1 className="font-bold text-3xl tracking-tight sm:text-4xl">
             Welcome back, {userName?.split(" ")[0]}! 👋
           </h1>
-          <p className="text-muted-foreground text-lg">
+          <p className="text-lg text-muted-foreground">
             Here's your family dashboard overview
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
           <Card className="md:col-span-2">
             <CardHeader>
               <CardTitle>Family Calendar</CardTitle>
@@ -40,29 +40,29 @@ export function IntroSection({ userName }: IntroSectionProps) {
             </CardContent>
           </Card>
 
-          <div className="space-y-4 flex flex-col">
-            <Card className="flex-1 flex flex-col">
+          <div className="flex flex-col space-y-4">
+            <Card className="flex flex-1 flex-col">
               <CardHeader className="pb-3">
                 <CardTitle className="text-base">Quick Stats</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3 flex-1 flex flex-col justify-center">
+              <CardContent className="flex flex-1 flex-col justify-center space-y-3">
                 <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-muted-foreground text-sm">
                     Upcoming Events
                   </p>
-                  <p className="text-3xl font-bold">5</p>
+                  <p className="font-bold text-3xl">5</p>
                 </div>
                 <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-muted-foreground text-sm">
                     Family Members
                   </p>
-                  <p className="text-3xl font-bold">4</p>
+                  <p className="font-bold text-3xl">4</p>
                 </div>
               </CardContent>
             </Card>
 
-            <Link href="/app" className="w-full">
-              <Button className="w-full gap-2 h-10">
+            <Link className="w-full" href="/app">
+              <Button className="h-10 w-full gap-2">
                 Go to App
                 <ArrowRight className="h-4 w-4" />
               </Button>
@@ -78,11 +78,11 @@ export function IntroSection({ userName }: IntroSectionProps) {
             <div className="flex items-start justify-between">
               <div className="space-y-1">
                 <p className="font-medium">Weekly Family Dinner</p>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-muted-foreground text-sm">
                   Saturday, 6:00 PM
                 </p>
               </div>
-              <Button variant="outline" size="sm">
+              <Button size="sm" variant="outline">
                 View Details
               </Button>
             </div>

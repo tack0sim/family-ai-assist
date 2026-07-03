@@ -1,8 +1,8 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 
 export async function socialSignIn() {
@@ -92,16 +92,19 @@ export async function signOut() {
   redirect("/");
 }
 
-
 export async function createFamily(formData: FormData) {
   const name = (formData.get("name") as string) || null;
-  if (!name) throw new Error("Missing family name");
+  if (!name) {
+    throw new Error("Missing family name");
+  }
 
   // get the logged-in user id from server-side session client
   const supabase = await createClient();
   const { data: userData } = await supabase.auth.getUser();
   const userId = userData?.user?.id;
-  if (!userId) throw new Error("Not authenticated");
+  if (!userId) {
+    throw new Error("Not authenticated");
+  }
 
   // use service role client to create family and membership (bypass RLS)
   const svc = createServiceRoleClient();
@@ -134,12 +137,16 @@ export async function createFamily(formData: FormData) {
 }
 
 export async function acceptInvitation(token: string) {
-  if (!token) throw new Error("Missing invitation token");
+  if (!token) {
+    throw new Error("Missing invitation token");
+  }
 
   const supabase = await createClient();
   const { data: userData } = await supabase.auth.getUser();
   const userId = userData?.user?.id;
-  if (!userId) throw new Error("Not authenticated");
+  if (!userId) {
+    throw new Error("Not authenticated");
+  }
 
   const svc = createServiceRoleClient();
 
@@ -150,10 +157,18 @@ export async function acceptInvitation(token: string) {
     .eq("token", token)
     .maybeSingle();
 
-  if (invErr) throw new Error(invErr.message || "Failed to fetch invitation");
-  if (!invite) throw new Error("Invitation not found");
-  if (invite.status !== "pending") throw new Error("Invitation not pending");
-  if (new Date(invite.expires_at) < new Date()) throw new Error("Invitation expired");
+  if (invErr) {
+    throw new Error(invErr.message || "Failed to fetch invitation");
+  }
+  if (!invite) {
+    throw new Error("Invitation not found");
+  }
+  if (invite.status !== "pending") {
+    throw new Error("Invitation not pending");
+  }
+  if (new Date(invite.expires_at) < new Date()) {
+    throw new Error("Invitation expired");
+  }
 
   // create family_members entry for the user
   const { error: memErr } = await svc.from("family_members").insert({
@@ -163,14 +178,18 @@ export async function acceptInvitation(token: string) {
     status: "active",
     joined_at: new Date().toISOString(),
   });
-  if (memErr) throw new Error(memErr.message || "Failed to join family");
+  if (memErr) {
+    throw new Error(memErr.message || "Failed to join family");
+  }
 
   // mark invitation accepted
   const { error: updErr } = await svc
     .from("invitations")
     .update({ status: "accepted" })
     .eq("id", invite.id);
-  if (updErr) throw new Error(updErr.message || "Failed to mark invitation accepted");
+  if (updErr) {
+    throw new Error(updErr.message || "Failed to mark invitation accepted");
+  }
 
   redirect("/");
 }

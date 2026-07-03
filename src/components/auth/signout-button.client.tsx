@@ -1,9 +1,9 @@
 "use client";
 
-import { createClient } from "@/lib/supabase/client";
 import { redirect, useRouter } from "next/navigation";
-import { Button } from "../ui/button";
+import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import { Button } from "../ui/button";
 
 interface SignOutButtonProps {
   className?: string;
@@ -30,8 +30,8 @@ export function SignOutButton({
 
   return (
     <Button
-      onClick={handleSignOut}
       className={cn("w-full", className)}
+      onClick={handleSignOut}
       variant={variantOverride ?? "default"}
     >
       Sign Out

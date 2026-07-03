@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { MailIcon } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -25,11 +25,11 @@ export default function CheckEmailPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
-            <p className="text-center text-sm text-muted-foreground">
+            <p className="text-center text-muted-foreground text-sm">
               Didn&apos;t receive it? Check your spam folder or try signing up
               again.
             </p>
-            <Button variant="outline" asChild>
+            <Button asChild variant="outline">
               <Link href="/auth/login">Back to sign in</Link>
             </Button>
           </CardContent>

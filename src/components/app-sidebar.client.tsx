@@ -1,7 +1,19 @@
 "use client";
 
-import * as React from "react";
-
+import type { User } from "@supabase/supabase-js";
+import {
+  AudioLinesIcon,
+  BookOpenIcon,
+  BotIcon,
+  FrameIcon,
+  GalleryVerticalEndIcon,
+  MapIcon,
+  PieChartIcon,
+  Settings2Icon,
+  TerminalIcon,
+  TerminalSquareIcon,
+} from "lucide-react";
+import type * as React from "react";
 import { NavMain } from "@/components/nav-main.client";
 import { NavProjects } from "@/components/nav-projects.client";
 import { NavUser } from "@/components/nav-user.client";
@@ -13,19 +25,6 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar";
-import {
-  GalleryVerticalEndIcon,
-  AudioLinesIcon,
-  TerminalIcon,
-  TerminalSquareIcon,
-  BotIcon,
-  BookOpenIcon,
-  Settings2Icon,
-  FrameIcon,
-  PieChartIcon,
-  MapIcon,
-} from "lucide-react";
-import type { User } from "@supabase/supabase-js";
 
 // This is sample data.
 const data = {

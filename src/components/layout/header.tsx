@@ -27,8 +27,8 @@ export function Header({ isAuthenticated, navOverride }: HeaderProps) {
           <div className="flex items-center gap-2 px-4">
             <SidebarTrigger className="-ml-1" />
             <Separator
-              orientation="vertical"
               className="mr-2 data-vertical:h-4 data-vertical:self-auto"
+              orientation="vertical"
             />
             <Breadcrumb>
               <BreadcrumbList>

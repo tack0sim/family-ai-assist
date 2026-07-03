@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { Heart, Home, Settings } from "lucide-react";
+import Link from "next/link";
 
 const SOCIAL_LINKS = [
   {
@@ -23,9 +23,9 @@ export function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="border-t border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <footer className="border-border/40 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex h-16 items-center justify-between px-4 sm:px-6">
-        <p className="text-xs text-muted-foreground">
+        <p className="text-muted-foreground text-xs">
           © {currentYear} FamilyAI. All rights reserved.
         </p>
         <div className="flex items-center gap-4">
@@ -33,10 +33,10 @@ export function Footer() {
             const Icon = link.icon;
             return (
               <Link
-                key={link.label}
-                href={link.href}
-                className="text-muted-foreground hover:text-foreground transition-colors"
                 aria-label={link.label}
+                className="text-muted-foreground transition-colors hover:text-foreground"
+                href={link.href}
+                key={link.label}
               >
                 <Icon className="h-4 w-4" />
               </Link>

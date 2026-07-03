@@ -1,6 +1,9 @@
 "use client";
 
-import { cn } from "@/lib/utils";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
+import Link from "next/link";
+import { useState } from "react";
+import { signUp } from "@/actions";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -17,12 +20,9 @@ import {
   FieldSeparator,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { SignInButton } from "./signin-button.client";
-import Link from "next/link";
-import { signUp } from "@/actions";
-import { isRedirectError } from "next/dist/client/components/redirect-error";
-import { useState } from "react";
+import { cn } from "@/lib/utils";
 import { Spinner } from "../ui/spinner";
+import { SignInButton } from "./signin-button.client";
 
 export function SignupForm({
   className,
@@ -45,7 +45,9 @@ export function SignupForm({
     try {
       await signUp(formData);
     } catch (error) {
-      if (isRedirectError(error)) throw error;
+      if (isRedirectError(error)) {
+        throw error;
+      }
       setLoading(false);
       if (error instanceof Error) {
         setError(error.message);
@@ -74,9 +76,9 @@ export function SignupForm({
                 <Input
                   id="name"
                   name="name"
-                  type="text"
                   placeholder="John Doe"
                   required
+                  type="text"
                 />
               </Field>
               <Field>
@@ -84,9 +86,9 @@ export function SignupForm({
                 <Input
                   id="email"
                   name="email"
-                  type="email"
                   placeholder="m@example.com"
                   required
+                  type="email"
                 />
               </Field>
               <Field>
@@ -96,8 +98,8 @@ export function SignupForm({
                     <Input
                       id="password"
                       name="password"
-                      type="password"
                       required
+                      type="password"
                     />
                   </Field>
                   <Field>
@@ -107,8 +109,8 @@ export function SignupForm({
                     <Input
                       id="confirm-password"
                       name="confirm-password"
-                      type="password"
                       required
+                      type="password"
                     />
                   </Field>
                 </Field>
@@ -117,7 +119,7 @@ export function SignupForm({
                 </FieldDescription>
               </Field>
               <Field>
-                <Button type="submit" disabled={loading}>
+                <Button disabled={loading} type="submit">
                   {loading ? (
                     <>
                       <Spinner className="mr-2" />
@@ -127,7 +129,7 @@ export function SignupForm({
                     "Create Account"
                   )}
                 </Button>
-                {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+                {error && <p className="mt-2 text-red-600 text-sm">{error}</p>}
                 <FieldDescription className="text-center">
                   Already have an account?{" "}
                   <Link href="/auth/login">Sign in</Link>
