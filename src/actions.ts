@@ -4,34 +4,11 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service";
+import { getBaseURL } from "@/lib/utils/get-base-url";
 
 export async function socialSignIn() {
   const header = await headers();
-
-  // Smart baseUrl resolution strategy
-  // On Vercel: prioritize custom domain (x-forwarded-host) or auto-detected VERCEL_URL
-  // On localhost: use localhost explicitly
-  // Other deployments: use explicit config or origin header
-  const isVercelDeployment = !!process.env.VERCEL;
-  const isDevelopment = process.env.NODE_ENV === "development";
-
-  let baseUrl: string;
-
-  if (isVercelDeployment) {
-    // On Vercel: prioritize custom domain (via x-forwarded-host) or VERCEL_URL
-    const forwardedHost = header.get("x-forwarded-host");
-    baseUrl = forwardedHost
-      ? `https://${forwardedHost}`
-      : process.env.VERCEL_URL
-        ? `https://${process.env.VERCEL_URL}`
-        : header.get("origin") || "";
-  } else if (isDevelopment) {
-    // On localhost: use localhost explicitly
-    baseUrl = "http://localhost:3000";
-  } else {
-    // Other deployments: use explicit config or origin header
-    baseUrl = process.env.NEXT_PUBLIC_BASE_URL || header.get("origin") || "";
-  }
+  const baseUrl = getBaseURL(header);
 
   const supabase = await createClient();
 
