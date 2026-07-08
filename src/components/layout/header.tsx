@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -11,15 +12,11 @@ import { Button } from "../ui/button";
 import { Separator } from "../ui/separator";
 import { SidebarTrigger } from "../ui/sidebar";
 
-interface HeaderProps {
-  isAuthenticated: boolean;
-  navOverride?: boolean;
-}
+export async function Header() {
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getClaims();
+  const isAuthenticated = !!data?.claims;
 
-export function Header({ isAuthenticated, navOverride }: HeaderProps) {
-  if (navOverride) {
-    return null;
-  }
   return (
     <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
       <div className="flex w-full items-center justify-between gap-2 px-4">

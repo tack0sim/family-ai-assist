@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
 import "../globals.css";
-import { AppSidebar } from "@/components/app-sidebar.client";
+import { AuthenticatedLayout } from "@/components/layout/authenticated-layout";
 import { Footer } from "@/components/layout/footer";
 import { Header } from "@/components/layout/header";
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { createClient } from "@/lib/supabase/server";
+import { SidebarProvider } from "@/components/ui/sidebar";
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -16,34 +15,13 @@ export default async function AppLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const supabase = await createClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!session) {
-    return (
-      <>
-        <Header isAuthenticated={false} />
-        <div className="flex grow flex-col">{children}</div>
-        <Footer />
-      </>
-    );
-  }
-
   return (
     <SidebarProvider>
-      <body className="flex grow flex-col">
-        <AppSidebar user={user ?? undefined} />
-        <SidebarInset>
-          <Header isAuthenticated={true} />
-          {children}
-          <Footer />
-        </SidebarInset>
-      </body>
+      <AuthenticatedLayout>
+        <Header />
+        {children}
+        <Footer />
+      </AuthenticatedLayout>
     </SidebarProvider>
   );
 }
