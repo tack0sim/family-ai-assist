@@ -188,9 +188,289 @@ export async function acceptInvitation(token: string) {
     .from("invitations")
     .update({ status: "accepted" })
     .eq("id", invite.id);
-  if (updErr) {
-    throw new Error(updErr.message || "Failed to mark invitation accepted");
+  redirect("/");
+}
+
+export async function inviteMembers(familyId: string, emails: string[]) {
+  // Stub implementation for testing
+  if (!familyId) {
+    throw new Error("Missing family ID");
   }
 
-  redirect("/");
+  if (!emails || emails.length === 0) {
+    throw new Error("No emails provided");
+  }
+
+  // get the logged-in user id from server-side session client
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  const userId = userData?.user?.id;
+  if (!userId) {
+    throw new Error("Not authenticated");
+  }
+
+  // use service role client to verify user is admin
+  const svc = createServiceRoleClient();
+
+  const { data: membership, error: memberErr } = await svc
+    .from("family_members")
+    .select("role")
+    .eq("family_id", familyId)
+    .eq("user_id", userId)
+    .single();
+
+  if (memberErr || !membership || membership.role !== "admin") {
+    throw new Error("User is not admin of this family");
+  }
+
+  // Create invitation records
+  const invitations = emails.map((email) => ({
+    family_id: familyId,
+    email,
+    token: crypto.randomUUID(),
+    invited_by: userId,
+    expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
+    status: "pending" as const,
+  }));
+
+  const { error: invErr } = await svc.from("invitations").insert(invitations);
+
+  if (invErr) {
+    throw new Error(invErr.message || "Failed to create invitations");
+  }
+
+  // TODO: Send emails via Resend
+  // const resend = new Resend(process.env.RESEND_API_KEY);
+  // for (const invite of invitations) {
+  //   await resend.emails.send({ ... });
+  // }
+}
+
+/**
+ * Update a family member's role
+ * Only admins can change member roles
+ */
+export async function updateMemberRole(
+  familyId: string,
+  memberId: string,
+  newRole: "admin" | "member" | "viewer"
+) {
+  // Validate inputs
+  if (!familyId) {
+    throw new Error("Family ID is required");
+  }
+
+  if (!memberId) {
+    throw new Error("Member ID is required");
+  }
+
+  if (!(newRole && ["admin", "member", "viewer"].includes(newRole))) {
+    throw new Error("Invalid role");
+  }
+
+  // Get current user
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  const userId = userData?.user?.id;
+  if (!userId) {
+    throw new Error("Not authenticated");
+  }
+
+  // Verify caller is admin
+  const svc = createServiceRoleClient();
+  const { data: membership, error: memberErr } = await svc
+    .from("family_members")
+    .select("role")
+    .eq("family_id", familyId)
+    .eq("user_id", userId)
+    .single();
+
+  if (memberErr || !membership || membership.role !== "admin") {
+    throw new Error("User is not admin of this family");
+  }
+
+  // Prevent admin from changing own role to non-admin
+  if (memberId === userId && newRole !== "admin") {
+    throw new Error("Admin cannot remove their own admin status");
+  }
+
+  // Update member role
+  const { error: updateErr } = await svc
+    .from("family_members")
+    .update({ role: newRole })
+    .eq("family_id", familyId)
+    .eq("user_id", memberId);
+
+  if (updateErr) {
+    throw new Error(updateErr.message || "Failed to update member role");
+  }
+}
+
+/**
+ * Remove a family member
+ * Only admins can remove members, and cannot remove themselves
+ */
+export async function removeMember(familyId: string, memberId: string) {
+  // Validate inputs
+  if (!familyId) {
+    throw new Error("Family ID is required");
+  }
+
+  if (!memberId) {
+    throw new Error("Member ID is required");
+  }
+
+  // Get current user
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  const userId = userData?.user?.id;
+  if (!userId) {
+    throw new Error("Not authenticated");
+  }
+
+  // Verify caller is admin
+  const svc = createServiceRoleClient();
+  const { data: membership, error: memberErr } = await svc
+    .from("family_members")
+    .select("role")
+    .eq("family_id", familyId)
+    .eq("user_id", userId)
+    .single();
+
+  if (memberErr || !membership || membership.role !== "admin") {
+    throw new Error("User is not admin of this family");
+  }
+
+  // Prevent admin from removing themselves
+  if (memberId === userId) {
+    throw new Error("Admin cannot remove themselves");
+  }
+
+  // Delete member record
+  const { error: deleteErr } = await svc
+    .from("family_members")
+    .delete()
+    .eq("family_id", familyId)
+    .eq("user_id", memberId);
+
+  if (deleteErr) {
+    throw new Error(deleteErr.message || "Failed to remove member");
+  }
+}
+
+/**
+ * Revoke an invitation
+ * Only admins can revoke invitations
+ */
+export async function revokeInvitation(familyId: string, invitationId: string) {
+  // Validate inputs
+  if (!familyId) {
+    throw new Error("Family ID is required");
+  }
+
+  if (!invitationId) {
+    throw new Error("Invitation ID is required");
+  }
+
+  // Get current user
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  const userId = userData?.user?.id;
+  if (!userId) {
+    throw new Error("Not authenticated");
+  }
+
+  // Verify caller is admin
+  const svc = createServiceRoleClient();
+  const { data: membership, error: memberErr } = await svc
+    .from("family_members")
+    .select("role")
+    .eq("family_id", familyId)
+    .eq("user_id", userId)
+    .single();
+
+  if (memberErr || !membership || membership.role !== "admin") {
+    throw new Error("User is not admin of this family");
+  }
+
+  // Delete invitation record
+  const { error: deleteErr } = await svc
+    .from("invitations")
+    .delete()
+    .eq("id", invitationId)
+    .eq("family_id", familyId);
+
+  if (deleteErr) {
+    throw new Error(deleteErr.message || "Failed to revoke invitation");
+  }
+}
+
+/**
+ * Resend an invitation email
+ * Only admins can resend invitations
+ */
+export async function resendInvitation(familyId: string, invitationId: string) {
+  // Validate inputs
+  if (!familyId) {
+    throw new Error("Family ID is required");
+  }
+
+  if (!invitationId) {
+    throw new Error("Invitation ID is required");
+  }
+
+  // Get current user
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  const userId = userData?.user?.id;
+  if (!userId) {
+    throw new Error("Not authenticated");
+  }
+
+  // Verify caller is admin
+  const svc = createServiceRoleClient();
+  const { data: membership, error: memberErr } = await svc
+    .from("family_members")
+    .select("role")
+    .eq("family_id", familyId)
+    .eq("user_id", userId)
+    .single();
+
+  if (memberErr || !membership || membership.role !== "admin") {
+    throw new Error("User is not admin of this family");
+  }
+
+  // Get the invitation
+  const { data: invitation, error: getErr } = await svc
+    .from("invitations")
+    .select("*")
+    .eq("id", invitationId)
+    .eq("family_id", familyId)
+    .single();
+
+  if (getErr || !invitation) {
+    throw new Error("Invitation not found");
+  }
+
+  // Update invitation with new token and expiry
+  const newToken = crypto.randomUUID();
+  const newExpiry = new Date(
+    Date.now() + 7 * 24 * 60 * 60 * 1000
+  ).toISOString();
+
+  const { error: updateErr } = await svc
+    .from("invitations")
+    .update({
+      token: newToken,
+      expires_at: newExpiry,
+    })
+    .eq("id", invitationId);
+
+  if (updateErr) {
+    throw new Error(updateErr.message || "Failed to resend invitation");
+  }
+
+  // TODO: Send email via Resend with new token
+  // const resend = new Resend(process.env.RESEND_API_KEY);
+  // await resend.emails.send({ ... });
 }
