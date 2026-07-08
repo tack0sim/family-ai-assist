@@ -12,7 +12,29 @@ vi.mock("@/lib/supabase/service");
 vi.mock("@/lib/utils/get-base-url");
 
 // Mock Resend (email service)
-vi.mock("resend");
+vi.mock("resend", () => ({
+  Resend: vi.fn().mockImplementation(() => ({
+    emails: {
+      send: vi.fn().mockResolvedValue({
+        data: { id: "email-message-id" },
+        error: null,
+      }),
+    },
+  })),
+}));
+
+// Mock react-email render
+vi.mock("react-email", () => ({
+  render: vi.fn((component: any) => "<html>Mock Email HTML</html>"),
+  Button: ({ children, href }: any) => `<button href="${href}">${children}</button>`,
+  Container: ({ children }: any) => `<div>${children}</div>`,
+  Head: () => "<head></head>",
+  Hr: () => "<hr />",
+  Html: ({ children }: any) => `<html>${children}</html>`,
+  Preview: ({ children }: any) => `<div>${children}</div>`,
+  Section: ({ children }: any) => `<section>${children}</section>`,
+  Text: ({ children }: any) => `<p>${children}</p>`,
+}));
 
 import {
   acceptInvitation,
@@ -414,6 +436,8 @@ describe("Family Management - inviteMembers", () => {
     // Arrange
     const { createClient } = await import("@/lib/supabase/server");
     const { createServiceRoleClient } = await import("@/lib/supabase/service");
+    const { headers } = await import("next/headers");
+    const { getBaseURL } = await import("@/lib/utils/get-base-url");
 
     const familyId = "family-123";
     const userId = "user-123";
@@ -426,6 +450,9 @@ describe("Family Management - inviteMembers", () => {
             user: {
               id: userId,
               email: "admin@example.com",
+              user_metadata: {
+                display_name: "Admin User",
+              },
             },
           },
         }),
@@ -444,6 +471,18 @@ describe("Family Management - inviteMembers", () => {
                     data: { role: "admin" },
                     error: null,
                   }),
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "families") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: { id: familyId, name: "Test Family" },
+                  error: null,
                 }),
               }),
             }),
@@ -470,6 +509,8 @@ describe("Family Management - inviteMembers", () => {
 
     vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
     vi.mocked(createServiceRoleClient).mockReturnValue(mockServiceClient);
+    vi.mocked(headers).mockResolvedValue({} as any);
+    vi.mocked(getBaseURL).mockReturnValue("https://test.example.com");
 
     // Act
     await inviteMembers(familyId, emails);
@@ -1121,6 +1162,8 @@ describe("Family Management - resendInvitation", () => {
     // Arrange
     const { createClient } = await import("@/lib/supabase/server");
     const { createServiceRoleClient } = await import("@/lib/supabase/service");
+    const { headers } = await import("next/headers");
+    const { getBaseURL } = await import("@/lib/utils/get-base-url");
 
     const familyId = "family-123";
     const userId = "admin-user";
@@ -1133,6 +1176,9 @@ describe("Family Management - resendInvitation", () => {
             user: {
               id: userId,
               email: "admin@example.com",
+              user_metadata: {
+                display_name: "Admin User",
+              },
             },
           },
         }),
@@ -1177,6 +1223,17 @@ describe("Family Management - resendInvitation", () => {
       }),
     };
 
+    const familiesTable = {
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({
+            data: { id: familyId, name: "Test Family" },
+            error: null,
+          }),
+        }),
+      }),
+    };
+
     const mockServiceClient = {
       from: (table: string) => {
         if (table === "family_members") {
@@ -1185,11 +1242,16 @@ describe("Family Management - resendInvitation", () => {
         if (table === "invitations") {
           return invitationsTable;
         }
+        if (table === "families") {
+          return familiesTable;
+        }
       },
     };
 
     vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
     vi.mocked(createServiceRoleClient).mockReturnValue(mockServiceClient);
+    vi.mocked(headers).mockResolvedValue({} as any);
+    vi.mocked(getBaseURL).mockReturnValue("https://test.example.com");
 
     // Act
     await resendInvitation(familyId, invitationId);

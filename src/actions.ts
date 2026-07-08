@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 import { getBaseURL } from "@/lib/utils/get-base-url";
+import { sendInvitationEmails } from "@/lib/email/send-invitation";
 
 export async function socialSignIn() {
   const header = await headers();
@@ -192,7 +193,6 @@ export async function acceptInvitation(token: string) {
 }
 
 export async function inviteMembers(familyId: string, emails: string[]) {
-  // Stub implementation for testing
   if (!familyId) {
     throw new Error("Missing family ID");
   }
@@ -223,6 +223,15 @@ export async function inviteMembers(familyId: string, emails: string[]) {
     throw new Error("User is not admin of this family");
   }
 
+  // Fetch family info for email context
+  const { data: family } = await svc
+    .from("families")
+    .select("name")
+    .eq("id", familyId)
+    .single();
+
+  const familyName = family?.name || "Your Family";
+
   // Create invitation records
   const invitations = emails.map((email) => ({
     family_id: familyId,
@@ -239,11 +248,17 @@ export async function inviteMembers(familyId: string, emails: string[]) {
     throw new Error(invErr.message || "Failed to create invitations");
   }
 
-  // TODO: Send emails via Resend
-  // const resend = new Resend(process.env.RESEND_API_KEY);
-  // for (const invite of invitations) {
-  //   await resend.emails.send({ ... });
-  // }
+  // Send invitation emails
+  const headersList = await headers();
+  const baseUrl = getBaseURL(headersList);
+
+  await sendInvitationEmails({
+    emails: invitations.map((inv) => ({ email: inv.email, token: inv.token })),
+    familyName,
+    invitedByName: userData.user?.user_metadata?.display_name,
+    expiresAt: new Date(invitations[0]!.expires_at),
+    baseUrl,
+  });
 }
 
 /**
@@ -452,11 +467,18 @@ export async function resendInvitation(familyId: string, invitationId: string) {
     throw new Error("Invitation not found");
   }
 
+  // Fetch family info for email context
+  const { data: family } = await svc
+    .from("families")
+    .select("name")
+    .eq("id", familyId)
+    .single();
+
+  const familyName = family?.name || "Your Family";
+
   // Update invitation with new token and expiry
   const newToken = crypto.randomUUID();
-  const newExpiry = new Date(
-    Date.now() + 7 * 24 * 60 * 60 * 1000
-  ).toISOString();
+  const newExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
 
   const { error: updateErr } = await svc
     .from("invitations")
@@ -470,7 +492,15 @@ export async function resendInvitation(familyId: string, invitationId: string) {
     throw new Error(updateErr.message || "Failed to resend invitation");
   }
 
-  // TODO: Send email via Resend with new token
-  // const resend = new Resend(process.env.RESEND_API_KEY);
-  // await resend.emails.send({ ... });
+  // Send invitation email with new token
+  const headersList = await headers();
+  const baseUrl = getBaseURL(headersList);
+
+  await sendInvitationEmails({
+    emails: [{ email: invitation.email, token: newToken }],
+    familyName,
+    invitedByName: userData.user?.user_metadata?.display_name,
+    expiresAt: new Date(newExpiry),
+    baseUrl,
+  });
 }
