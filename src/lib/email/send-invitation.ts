@@ -1,15 +1,15 @@
-import { Resend } from "resend";
 import { render } from "react-email";
+import { Resend } from "resend";
 import { InvitationEmail } from "@/emails/invitation-email";
-import { getBaseURL } from "@/lib/utils/get-base-url";
 
 export interface SendInvitationEmailParams {
+  baseUrl?: string;
   email: string;
+  expiresAt: Date;
   familyName: string;
+  from?: string;
   invitedByName?: string;
   token: string;
-  expiresAt: Date;
-  baseUrl?: string;
 }
 
 /**
@@ -24,6 +24,7 @@ export async function sendInvitationEmail(params: SendInvitationEmailParams) {
     token,
     expiresAt,
     baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://family-ai.app",
+    from = process.env.RESEND_FROM_EMAIL || "",
   } = params;
 
   if (!process.env.RESEND_API_KEY) {
@@ -49,14 +50,17 @@ export async function sendInvitationEmail(params: SendInvitationEmailParams) {
 
     // Send the email
     const result = await resend.emails.send({
-      from: "invitations@resend.dev",
+      from,
       to: email,
-      subject: `Join ${familyName} on Family AI`,
-      html: emailHtml,
+      subject: `Join ${familyName} on Family Assist`,
+      react: emailHtml,
     });
 
     if (result.error) {
-      console.error(`Failed to send invitation email to ${email}:`, result.error);
+      console.error(
+        `Failed to send invitation email to ${email}:`,
+        result.error
+      );
       return { success: false, error: result.error };
     }
 
