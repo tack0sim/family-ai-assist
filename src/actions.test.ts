@@ -19,6 +19,8 @@ import {
   createFamily,
   inviteMembers,
   removeMember,
+  resendInvitation,
+  revokeInvitation,
   updateMemberRole,
 } from "./actions";
 
@@ -953,6 +955,389 @@ describe("Family Management - removeMember", () => {
     // Act & Assert
     await expect(removeMember("family-123", userId)).rejects.toThrow(
       "Admin cannot remove themselves"
+    );
+  });
+});
+
+describe("Family Management - revokeInvitation", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("should revoke invitation when caller is admin", async () => {
+    // Arrange
+    const { createClient } = await import("@/lib/supabase/server");
+    const { createServiceRoleClient } = await import("@/lib/supabase/service");
+
+    const familyId = "family-123";
+    const userId = "admin-user";
+    const invitationId = "invite-id-123";
+
+    const mockSupabaseClient = {
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: {
+            user: {
+              id: userId,
+              email: "admin@example.com",
+            },
+          },
+        }),
+      },
+    };
+
+    const invitationsTable = {
+      delete: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({
+            data: null,
+            error: null,
+          }),
+        }),
+      }),
+    };
+
+    const familyMembersTable = {
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            single: vi.fn().mockResolvedValue({
+              data: { role: "admin" },
+              error: null,
+            }),
+          }),
+        }),
+      }),
+    };
+
+    const mockServiceClient = {
+      from: (table: string) => {
+        if (table === "family_members") {
+          return familyMembersTable;
+        }
+        if (table === "invitations") {
+          return invitationsTable;
+        }
+      },
+    };
+
+    vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
+    vi.mocked(createServiceRoleClient).mockReturnValue(mockServiceClient);
+
+    // Act
+    await revokeInvitation(familyId, invitationId);
+
+    // Assert
+    expect(invitationsTable.delete).toHaveBeenCalled();
+  });
+
+  it("should throw error if family ID is missing", async () => {
+    // Act & Assert
+    await expect(revokeInvitation("", "invite-id")).rejects.toThrow(
+      "Family ID is required"
+    );
+  });
+
+  it("should throw error if invitation ID is missing", async () => {
+    // Act & Assert
+    await expect(revokeInvitation("family-123", "")).rejects.toThrow(
+      "Invitation ID is required"
+    );
+  });
+
+  it("should throw error if user is not authenticated", async () => {
+    // Arrange
+    const { createClient } = await import("@/lib/supabase/server");
+
+    const mockSupabaseClient = {
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: null },
+        }),
+      },
+    };
+
+    vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
+
+    // Act & Assert
+    await expect(revokeInvitation("family-123", "invite-id")).rejects.toThrow(
+      "Not authenticated"
+    );
+  });
+
+  it("should throw error if user is not admin of family", async () => {
+    // Arrange
+    const { createClient } = await import("@/lib/supabase/server");
+    const { createServiceRoleClient } = await import("@/lib/supabase/service");
+
+    const mockSupabaseClient = {
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: {
+            user: {
+              id: "member-user",
+              email: "member@example.com",
+            },
+          },
+        }),
+      },
+    };
+
+    const mockServiceClient = {
+      from: (table: string) => {
+        if (table === "family_members") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  single: vi.fn().mockResolvedValue({
+                    data: { role: "member" },
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+          };
+        }
+      },
+    };
+
+    vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
+    vi.mocked(createServiceRoleClient).mockReturnValue(mockServiceClient);
+
+    // Act & Assert
+    await expect(revokeInvitation("family-123", "invite-id")).rejects.toThrow(
+      "User is not admin of this family"
+    );
+  });
+});
+
+describe("Family Management - resendInvitation", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("should resend invitation with new token and expiry when caller is admin", async () => {
+    // Arrange
+    const { createClient } = await import("@/lib/supabase/server");
+    const { createServiceRoleClient } = await import("@/lib/supabase/service");
+
+    const familyId = "family-123";
+    const userId = "admin-user";
+    const invitationId = "invite-id-123";
+
+    const mockSupabaseClient = {
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: {
+            user: {
+              id: userId,
+              email: "admin@example.com",
+            },
+          },
+        }),
+      },
+    };
+
+    const invitationsTable = {
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            single: vi.fn().mockResolvedValue({
+              data: {
+                id: invitationId,
+                family_id: familyId,
+                email: "invited@example.com",
+                token: "old-token",
+                expires_at: new Date(Date.now() + 86_400_000).toISOString(),
+              },
+              error: null,
+            }),
+          }),
+        }),
+      }),
+      update: vi.fn().mockReturnValue({
+        eq: vi.fn().mockResolvedValue({
+          data: null,
+          error: null,
+        }),
+      }),
+    };
+
+    const familyMembersTable = {
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            single: vi.fn().mockResolvedValue({
+              data: { role: "admin" },
+              error: null,
+            }),
+          }),
+        }),
+      }),
+    };
+
+    const mockServiceClient = {
+      from: (table: string) => {
+        if (table === "family_members") {
+          return familyMembersTable;
+        }
+        if (table === "invitations") {
+          return invitationsTable;
+        }
+      },
+    };
+
+    vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
+    vi.mocked(createServiceRoleClient).mockReturnValue(mockServiceClient);
+
+    // Act
+    await resendInvitation(familyId, invitationId);
+
+    // Assert
+    const updateCalls = (invitationsTable.update as any).mock.calls;
+    expect(updateCalls.length).toBe(1);
+    expect(updateCalls[0][0]).toHaveProperty("token");
+    expect(updateCalls[0][0]).toHaveProperty("expires_at");
+  });
+
+  it("should throw error if family ID is missing", async () => {
+    // Act & Assert
+    await expect(resendInvitation("", "invite-id")).rejects.toThrow(
+      "Family ID is required"
+    );
+  });
+
+  it("should throw error if invitation ID is missing", async () => {
+    // Act & Assert
+    await expect(resendInvitation("family-123", "")).rejects.toThrow(
+      "Invitation ID is required"
+    );
+  });
+
+  it("should throw error if user is not authenticated", async () => {
+    // Arrange
+    const { createClient } = await import("@/lib/supabase/server");
+
+    const mockSupabaseClient = {
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: null },
+        }),
+      },
+    };
+
+    vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
+
+    // Act & Assert
+    await expect(resendInvitation("family-123", "invite-id")).rejects.toThrow(
+      "Not authenticated"
+    );
+  });
+
+  it("should throw error if user is not admin of family", async () => {
+    // Arrange
+    const { createClient } = await import("@/lib/supabase/server");
+    const { createServiceRoleClient } = await import("@/lib/supabase/service");
+
+    const mockSupabaseClient = {
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: {
+            user: {
+              id: "member-user",
+              email: "member@example.com",
+            },
+          },
+        }),
+      },
+    };
+
+    const mockServiceClient = {
+      from: (table: string) => {
+        if (table === "family_members") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  single: vi.fn().mockResolvedValue({
+                    data: { role: "member" },
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+          };
+        }
+      },
+    };
+
+    vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
+    vi.mocked(createServiceRoleClient).mockReturnValue(mockServiceClient);
+
+    // Act & Assert
+    await expect(resendInvitation("family-123", "invite-id")).rejects.toThrow(
+      "User is not admin of this family"
+    );
+  });
+
+  it("should throw error if invitation not found", async () => {
+    // Arrange
+    const { createClient } = await import("@/lib/supabase/server");
+    const { createServiceRoleClient } = await import("@/lib/supabase/service");
+
+    const mockSupabaseClient = {
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: {
+            user: {
+              id: "admin-user",
+              email: "admin@example.com",
+            },
+          },
+        }),
+      },
+    };
+
+    const mockServiceClient = {
+      from: (table: string) => {
+        if (table === "family_members") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  single: vi.fn().mockResolvedValue({
+                    data: { role: "admin" },
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "invitations") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  single: vi.fn().mockResolvedValue({
+                    data: null,
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+          };
+        }
+      },
+    };
+
+    vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
+    vi.mocked(createServiceRoleClient).mockReturnValue(mockServiceClient);
+
+    // Act & Assert
+    await expect(resendInvitation("family-123", "invalid-id")).rejects.toThrow(
+      "Invitation not found"
     );
   });
 });
