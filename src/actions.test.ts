@@ -26,7 +26,8 @@ vi.mock("resend", () => ({
 // Mock react-email render
 vi.mock("react-email", () => ({
   render: vi.fn((component: any) => "<html>Mock Email HTML</html>"),
-  Button: ({ children, href }: any) => `<button href="${href}">${children}</button>`,
+  Button: ({ children, href }: any) =>
+    `<button href="${href}">${children}</button>`,
   Container: ({ children }: any) => `<div>${children}</div>`,
   Head: () => "<head></head>",
   Hr: () => "<hr />",

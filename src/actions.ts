@@ -2,10 +2,10 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { sendInvitationEmails } from "@/lib/email/send-invitation";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 import { getBaseURL } from "@/lib/utils/get-base-url";
-import { sendInvitationEmails } from "@/lib/email/send-invitation";
 
 export async function socialSignIn() {
   const header = await headers();
@@ -478,7 +478,9 @@ export async function resendInvitation(familyId: string, invitationId: string) {
 
   // Update invitation with new token and expiry
   const newToken = crypto.randomUUID();
-  const newExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  const newExpiry = new Date(
+    Date.now() + 7 * 24 * 60 * 60 * 1000
+  ).toISOString();
 
   const { error: updateErr } = await svc
     .from("invitations")
