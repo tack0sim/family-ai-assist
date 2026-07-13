@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { CreateFamilyForm } from "@/components/onboarding/create-family-form.client";
 import { JoinFamilyForm } from "@/components/onboarding/join-family-form.client";
+import { checkUserFamilyContext } from "@/lib/supabase/check-family";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function OnboardingPage() {
@@ -12,7 +13,13 @@ export default async function OnboardingPage() {
 
   // Redirect to login if not authenticated
   if (!user) {
-    redirect("/auth/login");
+    redirect("/auth/login?next=/onboarding");
+  }
+
+  // Redirect to home if user already has family context
+  const hasFamily = await checkUserFamilyContext();
+  if (hasFamily) {
+    redirect("/");
   }
 
   return (

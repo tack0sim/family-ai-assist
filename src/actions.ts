@@ -3,6 +3,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { sendInvitationEmails } from "@/lib/email/send-invitation";
+import { checkUserFamilyContext } from "@/lib/supabase/check-family";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 import { getBaseURL } from "@/lib/utils/get-base-url";
@@ -80,7 +81,11 @@ export async function signIn(formData: FormData) {
     throw new Error(error?.message || "Signin failed");
   }
 
-  redirect("/");
+  // Check if user has family context
+  const hasFamily = await checkUserFamilyContext();
+  const destination = hasFamily ? "/" : "/onboarding";
+
+  redirect(destination);
 }
 
 export async function signOut() {

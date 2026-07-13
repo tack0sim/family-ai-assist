@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { checkUserFamilyContext } from "@/lib/supabase/check-family";
 import { createClient } from "@/lib/supabase/server";
 import { getBaseURL } from "@/lib/utils/get-base-url";
 
@@ -16,8 +17,12 @@ export async function GET(request: Request) {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
+      // Check if user has family context
+      const hasFamily = await checkUserFamilyContext();
+      const destination = hasFamily ? next : "/onboarding";
+
       const baseUrl = getBaseURL(request.headers);
-      return NextResponse.redirect(`${baseUrl}${next}`);
+      return NextResponse.redirect(`${baseUrl}${destination}`);
     }
   }
 

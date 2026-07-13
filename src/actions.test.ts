@@ -10,6 +10,7 @@ vi.mock("@/lib/supabase/service");
 
 // Mock utilities
 vi.mock("@/lib/utils/get-base-url");
+vi.mock("@/lib/supabase/check-family");
 
 // Mock Resend (email service)
 vi.mock("resend", () => ({
@@ -44,6 +45,8 @@ import {
   removeMember,
   resendInvitation,
   revokeInvitation,
+  signIn,
+  signUp,
   updateMemberRole,
 } from "./actions";
 
@@ -1402,5 +1405,137 @@ describe("Family Management - resendInvitation", () => {
     await expect(resendInvitation("family-123", "invalid-id")).rejects.toThrow(
       "Invitation not found"
     );
+  });
+});
+
+describe("Auth - Family Context Checks", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe("signIn - redirect based on family context", () => {
+    it("should redirect to /onboarding if user has no family context", async () => {
+      // Arrange
+      const { createClient } = await import("@/lib/supabase/server");
+      const { redirect } = await import("next/navigation");
+      const { checkUserFamilyContext } = await import(
+        "@/lib/supabase/check-family"
+      );
+
+      const mockSupabaseClient = {
+        auth: {
+          signInWithPassword: vi.fn().mockResolvedValue({
+            data: {
+              user: { id: "user-123", email: "user@example.com" },
+              session: { access_token: "token-123" },
+            },
+            error: null,
+          }),
+        },
+      };
+
+      vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
+      vi.mocked(checkUserFamilyContext).mockResolvedValue(false);
+      vi.mocked(redirect).mockImplementation(() => {
+        throw new Error("REDIRECT_/onboarding");
+      });
+
+      // Act
+      const formData = new FormData();
+      formData.append("email", "user@example.com");
+      formData.append("password", "password123");
+
+      try {
+        await signIn(formData);
+      } catch (error) {
+        // Expected redirect
+      }
+
+      // Assert
+      expect(redirect).toHaveBeenCalledWith("/onboarding");
+    });
+
+    it("should redirect to / if user has family context", async () => {
+      // Arrange
+      const { createClient } = await import("@/lib/supabase/server");
+      const { redirect } = await import("next/navigation");
+      const { checkUserFamilyContext } = await import(
+        "@/lib/supabase/check-family"
+      );
+
+      const mockSupabaseClient = {
+        auth: {
+          signInWithPassword: vi.fn().mockResolvedValue({
+            data: {
+              user: { id: "user-123", email: "user@example.com" },
+              session: { access_token: "token-123" },
+            },
+            error: null,
+          }),
+        },
+      };
+
+      vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
+      vi.mocked(checkUserFamilyContext).mockResolvedValue(true);
+      vi.mocked(redirect).mockImplementation(() => {
+        throw new Error("REDIRECT_/");
+      });
+
+      // Act
+      const formData = new FormData();
+      formData.append("email", "user@example.com");
+      formData.append("password", "password123");
+
+      try {
+        await signIn(formData);
+      } catch (error) {
+        // Expected redirect
+      }
+
+      // Assert
+      expect(redirect).toHaveBeenCalledWith("/");
+    });
+  });
+
+  describe("signUp - should not check family during signup", () => {
+    it("should redirect to /auth/check-email after successful signup", async () => {
+      // Arrange
+      const { createClient } = await import("@/lib/supabase/server");
+      const { redirect } = await import("next/navigation");
+
+      const mockSupabaseClient = {
+        auth: {
+          signUp: vi.fn().mockResolvedValue({
+            data: {
+              user: {
+                id: "user-456",
+                email: "newuser@example.com",
+              },
+            },
+            error: null,
+          }),
+        },
+      };
+
+      vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
+      vi.mocked(redirect).mockImplementation(() => {
+        throw new Error("REDIRECT_/auth/check-email");
+      });
+
+      // Act
+      const formData = new FormData();
+      formData.append("email", "newuser@example.com");
+      formData.append("password", "password123");
+      formData.append("confirm-password", "password123");
+
+      try {
+        await signUp(formData);
+      } catch (error) {
+        // Expected redirect
+      }
+
+      // Assert
+      expect(redirect).toHaveBeenCalledWith("/auth/check-email");
+    });
   });
 });
