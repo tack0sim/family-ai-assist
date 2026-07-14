@@ -1,17 +1,20 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service";
 
 /**
  * Check if a user has any family context:
  * - A family they created (families.created_by)
  * - An active membership in a family (family_members with status='active')
  *
+ * Uses service role client to bypass RLS and avoid policy recursion.
  * Returns true if the user has any of these conditions.
  */
 export async function checkUserFamilyContext(): Promise<boolean> {
   const supabase = await createClient();
 
+  // Get authenticated user from session
   const { data: userData } = await supabase.auth.getUser();
   const userId = userData?.user?.id;
 
@@ -19,8 +22,11 @@ export async function checkUserFamilyContext(): Promise<boolean> {
     return false;
   }
 
+  // Use service role to bypass RLS and avoid policy recursion
+  const svc = createServiceRoleClient();
+
   // Check if user created a family
-  const { data: createdFamily, error: createdError } = await supabase
+  const { data: createdFamily, error: createdError } = await svc
     .from("families")
     .select("id")
     .eq("created_by", userId)
@@ -35,7 +41,7 @@ export async function checkUserFamilyContext(): Promise<boolean> {
   }
 
   // Check if user is an active member of any family
-  const { data: membership, error: memberError } = await supabase
+  const { data: membership, error: memberError } = await svc
     .from("family_members")
     .select("id")
     .eq("user_id", userId)
@@ -46,5 +52,9 @@ export async function checkUserFamilyContext(): Promise<boolean> {
     console.error("Error checking family memberships:", memberError);
   }
 
-  return !!membership;
+  if (membership) {
+    return true;
+  }
+
+  return false;
 }

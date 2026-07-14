@@ -17,6 +17,29 @@ export async function GET(request: Request) {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
+      // Get authenticated user
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData?.user?.id;
+
+      // Create profile for the newly authenticated user (if it doesn't exist)
+      // The trigger should have created it, but this ensures it exists
+      if (userId) {
+        const { error: profileErr } = await supabase.from("profiles").upsert(
+          {
+            id: userId,
+            display_name: userData.user?.user_metadata?.name || null,
+            avatar_url: userData.user?.user_metadata?.avatar_url || null,
+            created_at: new Date().toISOString(),
+          },
+          { onConflict: "id" }
+        );
+
+        if (profileErr) {
+          console.error("Failed to create profile:", profileErr);
+          // Don't fail the entire flow, just log the error
+        }
+      }
+
       // Check if user has family context
       const hasFamily = await checkUserFamilyContext();
       const destination = hasFamily ? next : "/onboarding";

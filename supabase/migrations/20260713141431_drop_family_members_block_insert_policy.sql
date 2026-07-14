@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS family_members_block_insert ON public.family_members;

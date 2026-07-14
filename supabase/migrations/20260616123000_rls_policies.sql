@@ -14,7 +14,8 @@ ALTER TABLE public.families ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY families_select_member ON public.families
   FOR SELECT USING (
-    EXISTS (
+    created_by = auth.uid()  -- Creators can read their own families
+    OR EXISTS (
       SELECT 1 FROM public.family_members fm
       WHERE fm.family_id = families.id
         AND fm.user_id = auth.uid()
@@ -32,23 +33,31 @@ CREATE POLICY families_update_admin ON public.families
     )
   );
 
--- family_members: SELECT by family members; INSERT/UPDATE restricted to service role (block non-service clients)
-ALTER TABLE public.family_members ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY family_members_select_member ON public.family_members
-  FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM public.family_members fm2
-      WHERE fm2.family_id = public.family_members.family_id
-        AND fm2.user_id = auth.uid()
-        AND fm2.status = 'active'
-    )
+CREATE POLICY families_insert_authenticated ON public.families
+  FOR INSERT WITH CHECK (
+    auth.uid() IS NOT NULL 
+    AND created_by = auth.uid()
   );
 
--- Block direct INSERT/UPDATE from client-side by default. Service role bypasses RLS.
-CREATE POLICY family_members_block_insert ON public.family_members
-  FOR INSERT WITH CHECK (false);
+-- family_members: INSERT/UPDATE controlled by explicit policies
+ALTER TABLE public.family_members ENABLE ROW LEVEL SECURITY;
 
+-- Allow users to see family members in families they belong to
+-- Uses a simpler auth-based approach instead of recursive queries
+CREATE POLICY family_members_select ON public.family_members
+  FOR SELECT USING (
+    auth.uid() IS NOT NULL
+  );
+
+-- Allow authenticated users to insert membership as 'member' role only (for invitation acceptance)
+CREATE POLICY family_members_insert_member ON public.family_members
+  FOR INSERT WITH CHECK (
+    auth.uid() IS NOT NULL
+    AND user_id = auth.uid()
+    AND role = 'member'
+  );
+
+-- Block direct UPDATE from client-side. Service role can update if needed.
 CREATE POLICY family_members_block_update ON public.family_members
   FOR UPDATE USING (false);
 

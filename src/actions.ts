@@ -105,28 +105,31 @@ export async function createFamily(formData: FormData) {
     throw new Error("Missing family name");
   }
 
-  // get the logged-in user id from server-side session client
+  // Get the logged-in user from server-side session
   const supabase = await createClient();
   const { data: userData } = await supabase.auth.getUser();
   const userId = userData?.user?.id;
+  console.log("userId from getUser():", userId);
   if (!userId) {
     throw new Error("Not authenticated");
   }
 
-  // use service role client to create family and membership (bypass RLS)
-  const svc = createServiceRoleClient();
-
-  const { data: family, error: famErr } = await svc
+  // Create family using authenticated client (RLS policy allows this)
+  const { data: family, error: famErr } = await supabase
     .from("families")
     .insert({ name, created_by: userId })
     .select("id")
     .single();
 
+  console.log("Insert error:", famErr?.message);
+  console.log("Insert error details:", famErr);
+
   if (famErr || !family?.id) {
     throw new Error(famErr?.message || "Failed to create family");
   }
 
-  // create family_members as admin
+  // Create family_members with admin role using service role (RLS blocks non-member roles)
+  const svc = createServiceRoleClient();
   const { error: memErr } = await svc.from("family_members").insert({
     family_id: family.id,
     user_id: userId,
@@ -155,9 +158,8 @@ export async function acceptInvitation(token: string) {
     throw new Error("Not authenticated");
   }
 
+  // Use service role to fetch invitation (user can only see their own by email)
   const svc = createServiceRoleClient();
-
-  // fetch invitation by token
   const { data: invite, error: invErr } = await svc
     .from("invitations")
     .select("id, family_id, email, expires_at, status")
@@ -177,8 +179,14 @@ export async function acceptInvitation(token: string) {
     throw new Error("Invitation expired");
   }
 
-  // create family_members entry for the user
-  const { error: memErr } = await svc.from("family_members").insert({
+  // Verify email matches authenticated user
+  const userEmail = userData.user?.email;
+  if (invite.email !== userEmail) {
+    throw new Error("Invitation email does not match authenticated user");
+  }
+
+  // Create family_members entry using authenticated user (RLS policy enforces role='member')
+  const { error: memErr } = await supabase.from("family_members").insert({
     family_id: invite.family_id,
     user_id: userId,
     role: "member",
@@ -189,11 +197,15 @@ export async function acceptInvitation(token: string) {
     throw new Error(memErr.message || "Failed to join family");
   }
 
-  // mark invitation accepted
+  // Mark invitation accepted (use service role for this update as RLS blocks it)
   const { error: updErr } = await svc
     .from("invitations")
     .update({ status: "accepted" })
     .eq("id", invite.id);
+  if (updErr) {
+    throw new Error(updErr.message || "Failed to accept invitation");
+  }
+
   redirect("/");
 }
 
