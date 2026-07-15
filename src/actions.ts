@@ -109,7 +109,7 @@ export async function createFamily(formData: FormData) {
   const supabase = await createClient();
   const { data: userData } = await supabase.auth.getUser();
   const userId = userData?.user?.id;
-  console.log("userId from getUser():", userId);
+
   if (!userId) {
     throw new Error("Not authenticated");
   }
@@ -122,7 +122,6 @@ export async function createFamily(formData: FormData) {
   });
 
   if (ensureProfileErr) {
-    console.error("Failed to ensure profile exists:", ensureProfileErr);
     throw new Error("Failed to verify user profile. Please try again.");
   }
 
@@ -132,9 +131,6 @@ export async function createFamily(formData: FormData) {
     .insert({ name, created_by: userId })
     .select("id")
     .single();
-
-  console.log("Insert error:", famErr?.message);
-  console.log("Insert error details:", famErr);
 
   if (famErr || !family?.id) {
     throw new Error(famErr?.message || "Failed to create family");
