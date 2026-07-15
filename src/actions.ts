@@ -114,6 +114,18 @@ export async function createFamily(formData: FormData) {
     throw new Error("Not authenticated");
   }
 
+  // Issue #14: Defensive check - ensure profile exists before creating family
+  // This handles cases where the auth→profile trigger may have failed
+  const svc = createServiceRoleClient();
+  const { error: ensureProfileErr } = await svc.rpc("ensure_profile_exists", {
+    p_user_id: userId,
+  });
+
+  if (ensureProfileErr) {
+    console.error("Failed to ensure profile exists:", ensureProfileErr);
+    throw new Error("Failed to verify user profile. Please try again.");
+  }
+
   // Create family using authenticated client (RLS policy allows this)
   const { data: family, error: famErr } = await supabase
     .from("families")
@@ -129,7 +141,6 @@ export async function createFamily(formData: FormData) {
   }
 
   // Create family_members with admin role using service role (RLS blocks non-member roles)
-  const svc = createServiceRoleClient();
   const { error: memErr } = await svc.from("family_members").insert({
     family_id: family.id,
     user_id: userId,

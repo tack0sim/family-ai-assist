@@ -2,7 +2,7 @@ import type { NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 
 const publicPaths = ["/", "/auth/login"];
-const protectedPaths = ["/dashboard", "/profile"];
+const protectedPaths = ["/dashboard", "/profile", "/onboarding"];
 
 export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
