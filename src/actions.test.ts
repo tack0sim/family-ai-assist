@@ -61,6 +61,7 @@ describe("Family Management - createFamily", () => {
     const { createServiceRoleClient } = await import("@/lib/supabase/service");
     const { redirect } = await import("next/navigation");
 
+    const familyId = "family-123";
     const mockSupabaseClient = {
       auth: {
         getUser: vi.fn().mockResolvedValue({
@@ -72,10 +73,6 @@ describe("Family Management - createFamily", () => {
           },
         }),
       },
-    };
-
-    const familyId = "family-123";
-    const mockServiceClient = {
       from: vi.fn((table: string) => {
         if (table === "families") {
           return {
@@ -91,12 +88,19 @@ describe("Family Management - createFamily", () => {
         }
         if (table === "family_members") {
           return {
-            insert: vi.fn().mockReturnValue({
+            insert: vi.fn().mockResolvedValue({
               data: null,
               error: null,
             }),
           };
         }
+      }),
+    };
+
+    const mockServiceClient = {
+      rpc: vi.fn().mockResolvedValue({
+        data: null,
+        error: null,
       }),
     };
 
@@ -163,9 +167,6 @@ describe("Family Management - createFamily", () => {
           },
         }),
       },
-    };
-
-    const mockServiceClient = {
       from: vi.fn().mockReturnValue({
         insert: vi.fn().mockReturnValue({
           select: vi.fn().mockReturnValue({
@@ -175,6 +176,13 @@ describe("Family Management - createFamily", () => {
             }),
           }),
         }),
+      }),
+    };
+
+    const mockServiceClient = {
+      rpc: vi.fn().mockResolvedValue({
+        data: null,
+        error: null,
       }),
     };
 

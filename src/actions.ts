@@ -140,8 +140,8 @@ export async function createFamily(formData: FormData) {
     throw new Error(famErr?.message || "Failed to create family");
   }
 
-  // Create family_members with admin role using service role (RLS blocks non-member roles)
-  const { error: memErr } = await svc.from("family_members").insert({
+  // Add creator as admin member (RLS policy ensures user can only add themselves as admin to families they created)
+  const { error: memErr } = await supabase.from("family_members").insert({
     family_id: family.id,
     user_id: userId,
     role: "admin",
