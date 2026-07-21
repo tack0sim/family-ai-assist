@@ -7,6 +7,7 @@ import { checkUserFamilyContext } from "@/lib/supabase/check-family";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 import { getBaseURL } from "@/lib/utils/get-base-url";
+import { validatePasswordComplexity } from "@/lib/utils/validate-password";
 
 export async function socialSignIn() {
   const header = await headers();
@@ -42,8 +43,9 @@ export async function signUp(formData: FormData) {
     throw new Error("Passwords do not match");
   }
 
-  if (password.length < 8) {
-    throw new Error("Password must be at least 8 characters long");
+  const validation = validatePasswordComplexity(password);
+  if (!validation.isValid) {
+    throw new Error(validation.errors[0]);
   }
 
   const supabase = await createClient();
@@ -63,7 +65,16 @@ export async function signUp(formData: FormData) {
     throw new Error(error?.message || "Signup failed");
   }
 
-  redirect("/auth/check-email");
+  const svc = createServiceRoleClient();
+  const { error: ensureProfileErr } = await svc.rpc("ensure_profile_exists", {
+    p_user_id: data.user.id,
+  });
+
+  if (ensureProfileErr) {
+    throw new Error("Failed to verify user profile. Please try again.");
+  }
+
+  redirect("/onboarding");
 }
 
 export async function signIn(formData: FormData) {

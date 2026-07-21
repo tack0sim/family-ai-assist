@@ -1505,10 +1505,13 @@ describe("Auth - Family Context Checks", () => {
     });
   });
 
-  describe("signUp - should not check family during signup", () => {
-    it("should redirect to /auth/check-email after successful signup", async () => {
+  describe("signUp - refactored with password complexity and profile creation", () => {
+    it("should redirect to /onboarding after successful signup and profile creation", async () => {
       // Arrange
       const { createClient } = await import("@/lib/supabase/server");
+      const { createServiceRoleClient } = await import(
+        "@/lib/supabase/service"
+      );
       const { redirect } = await import("next/navigation");
 
       const mockSupabaseClient = {
@@ -1525,16 +1528,25 @@ describe("Auth - Family Context Checks", () => {
         },
       };
 
+      const mockServiceClient = {
+        rpc: vi.fn().mockResolvedValue({
+          data: null,
+          error: null,
+        }),
+      };
+
       vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
+      vi.mocked(createServiceRoleClient).mockReturnValue(mockServiceClient);
       vi.mocked(redirect).mockImplementation(() => {
-        throw new Error("REDIRECT_/auth/check-email");
+        throw new Error("REDIRECT_/onboarding");
       });
 
       // Act
       const formData = new FormData();
       formData.append("email", "newuser@example.com");
-      formData.append("password", "password123");
-      formData.append("confirm-password", "password123");
+      formData.append("name", "New User");
+      formData.append("password", "ValidPass123!");
+      formData.append("confirm-password", "ValidPass123!");
 
       try {
         await signUp(formData);
@@ -1543,7 +1555,157 @@ describe("Auth - Family Context Checks", () => {
       }
 
       // Assert
-      expect(redirect).toHaveBeenCalledWith("/auth/check-email");
+      expect(redirect).toHaveBeenCalledWith("/onboarding");
+      expect(mockServiceClient.rpc).toHaveBeenCalledWith(
+        "ensure_profile_exists",
+        {
+          p_user_id: "user-456",
+        }
+      );
+    });
+
+    it("should throw error if passwords do not match", async () => {
+      // Act & Assert
+      const formData = new FormData();
+      formData.append("email", "newuser@example.com");
+      formData.append("name", "New User");
+      formData.append("password", "ValidPass123!");
+      formData.append("confirm-password", "DifferentPass456!");
+
+      await expect(signUp(formData)).rejects.toThrow("Passwords do not match");
+    });
+
+    it("should reject password without uppercase letter", async () => {
+      // Act & Assert
+      const formData = new FormData();
+      formData.append("email", "newuser@example.com");
+      formData.append("name", "New User");
+      formData.append("password", "validpass123!");
+      formData.append("confirm-password", "validpass123!");
+
+      await expect(signUp(formData)).rejects.toThrow(
+        "Password must contain at least one uppercase letter"
+      );
+    });
+
+    it("should reject password without lowercase letter", async () => {
+      // Act & Assert
+      const formData = new FormData();
+      formData.append("email", "newuser@example.com");
+      formData.append("name", "New User");
+      formData.append("password", "VALIDPASS123!");
+      formData.append("confirm-password", "VALIDPASS123!");
+
+      await expect(signUp(formData)).rejects.toThrow(
+        "Password must contain at least one lowercase letter"
+      );
+    });
+
+    it("should reject password without number", async () => {
+      // Act & Assert
+      const formData = new FormData();
+      formData.append("email", "newuser@example.com");
+      formData.append("name", "New User");
+      formData.append("password", "ValidPass!");
+      formData.append("confirm-password", "ValidPass!");
+
+      await expect(signUp(formData)).rejects.toThrow(
+        "Password must contain at least one number"
+      );
+    });
+
+    it("should reject password without special character", async () => {
+      // Act & Assert
+      const formData = new FormData();
+      formData.append("email", "newuser@example.com");
+      formData.append("name", "New User");
+      formData.append("password", "ValidPass123");
+      formData.append("confirm-password", "ValidPass123");
+
+      await expect(signUp(formData)).rejects.toThrow(
+        "Password must contain at least one special character"
+      );
+    });
+
+    it("should reject password shorter than 8 characters", async () => {
+      // Act & Assert
+      const formData = new FormData();
+      formData.append("email", "newuser@example.com");
+      formData.append("name", "New User");
+      formData.append("password", "Pass1!");
+      formData.append("confirm-password", "Pass1!");
+
+      await expect(signUp(formData)).rejects.toThrow(
+        "Password must be at least 8 characters long"
+      );
+    });
+
+    it("should throw error if ensure_profile_exists fails", async () => {
+      // Arrange
+      const { createClient } = await import("@/lib/supabase/server");
+      const { createServiceRoleClient } = await import(
+        "@/lib/supabase/service"
+      );
+
+      const mockSupabaseClient = {
+        auth: {
+          signUp: vi.fn().mockResolvedValue({
+            data: {
+              user: {
+                id: "user-456",
+                email: "newuser@example.com",
+              },
+            },
+            error: null,
+          }),
+        },
+      };
+
+      const mockServiceClient = {
+        rpc: vi.fn().mockResolvedValue({
+          data: null,
+          error: { message: "Profile creation failed" },
+        }),
+      };
+
+      vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
+      vi.mocked(createServiceRoleClient).mockReturnValue(mockServiceClient);
+
+      // Act & Assert
+      const formData = new FormData();
+      formData.append("email", "newuser@example.com");
+      formData.append("name", "New User");
+      formData.append("password", "ValidPass123!");
+      formData.append("confirm-password", "ValidPass123!");
+
+      await expect(signUp(formData)).rejects.toThrow(
+        "Failed to verify user profile. Please try again."
+      );
+    });
+
+    it("should throw generic error if signup fails", async () => {
+      // Arrange
+      const { createClient } = await import("@/lib/supabase/server");
+
+      const mockSupabaseClient = {
+        auth: {
+          signUp: vi.fn().mockResolvedValue({
+            data: { user: null },
+            error: { message: "Email already in use" },
+          }),
+        },
+      };
+
+      vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
+
+      // Act & Assert
+      const formData = new FormData();
+      formData.append("email", "newuser@example.com");
+      formData.append("name", "New User");
+      formData.append("password", "ValidPass123!");
+      formData.append("confirm-password", "ValidPass123!");
+
+      await expect(signUp(formData)).rejects.toThrow("Email already in use");
     });
   });
 });
