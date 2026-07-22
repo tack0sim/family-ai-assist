@@ -89,7 +89,26 @@ export async function signIn(formData: FormData) {
   });
 
   if (error || !data.user || !data.session) {
+    // Handle specific error types
+    if (error?.code === "invalid_credentials") {
+      throw new Error("Invalid email or password");
+    }
+
+    if (error?.code === "rate_limit_error") {
+      throw new Error(error.message);
+    }
+
     throw new Error(error?.message || "Signin failed");
+  }
+
+  // Call ensure_profile_exists RPC after successful signin
+  const svc = createServiceRoleClient();
+  const { error: ensureProfileErr } = await svc.rpc("ensure_profile_exists", {
+    p_user_id: data.user.id,
+  });
+
+  if (ensureProfileErr) {
+    throw new Error("Failed to verify user profile. Please try again.");
   }
 
   // Check if user has family context

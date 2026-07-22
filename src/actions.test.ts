@@ -1421,10 +1421,13 @@ describe("Auth - Family Context Checks", () => {
     vi.clearAllMocks();
   });
 
-  describe("signIn - redirect based on family context", () => {
-    it("should redirect to /onboarding if user has no family context", async () => {
+  describe("signIn - refactored with profile verification and family context", () => {
+    it("should call ensure_profile_exists after successful signin and redirect to /onboarding if user has no family context", async () => {
       // Arrange
       const { createClient } = await import("@/lib/supabase/server");
+      const { createServiceRoleClient } = await import(
+        "@/lib/supabase/service"
+      );
       const { redirect } = await import("next/navigation");
       const { checkUserFamilyContext } = await import(
         "@/lib/supabase/check-family"
@@ -1442,7 +1445,15 @@ describe("Auth - Family Context Checks", () => {
         },
       };
 
+      const mockServiceClient = {
+        rpc: vi.fn().mockResolvedValue({
+          data: null,
+          error: null,
+        }),
+      };
+
       vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
+      vi.mocked(createServiceRoleClient).mockReturnValue(mockServiceClient);
       vi.mocked(checkUserFamilyContext).mockResolvedValue(false);
       vi.mocked(redirect).mockImplementation(() => {
         throw new Error("REDIRECT_/onboarding");
@@ -1460,12 +1471,21 @@ describe("Auth - Family Context Checks", () => {
       }
 
       // Assert
+      expect(mockServiceClient.rpc).toHaveBeenCalledWith(
+        "ensure_profile_exists",
+        {
+          p_user_id: "user-123",
+        }
+      );
       expect(redirect).toHaveBeenCalledWith("/onboarding");
     });
 
-    it("should redirect to / if user has family context", async () => {
+    it("should call ensure_profile_exists after successful signin and redirect to / if user has family context", async () => {
       // Arrange
       const { createClient } = await import("@/lib/supabase/server");
+      const { createServiceRoleClient } = await import(
+        "@/lib/supabase/service"
+      );
       const { redirect } = await import("next/navigation");
       const { checkUserFamilyContext } = await import(
         "@/lib/supabase/check-family"
@@ -1483,7 +1503,15 @@ describe("Auth - Family Context Checks", () => {
         },
       };
 
+      const mockServiceClient = {
+        rpc: vi.fn().mockResolvedValue({
+          data: null,
+          error: null,
+        }),
+      };
+
       vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
+      vi.mocked(createServiceRoleClient).mockReturnValue(mockServiceClient);
       vi.mocked(checkUserFamilyContext).mockResolvedValue(true);
       vi.mocked(redirect).mockImplementation(() => {
         throw new Error("REDIRECT_/");
@@ -1501,7 +1529,108 @@ describe("Auth - Family Context Checks", () => {
       }
 
       // Assert
+      expect(mockServiceClient.rpc).toHaveBeenCalledWith(
+        "ensure_profile_exists",
+        {
+          p_user_id: "user-123",
+        }
+      );
       expect(redirect).toHaveBeenCalledWith("/");
+    });
+
+    it("should throw error if ensure_profile_exists fails", async () => {
+      // Arrange
+      const { createClient } = await import("@/lib/supabase/server");
+      const { createServiceRoleClient } = await import(
+        "@/lib/supabase/service"
+      );
+
+      const mockSupabaseClient = {
+        auth: {
+          signInWithPassword: vi.fn().mockResolvedValue({
+            data: {
+              user: { id: "user-123", email: "user@example.com" },
+              session: { access_token: "token-123" },
+            },
+            error: null,
+          }),
+        },
+      };
+
+      const mockServiceClient = {
+        rpc: vi.fn().mockResolvedValue({
+          data: null,
+          error: { message: "Profile verification failed" },
+        }),
+      };
+
+      vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
+      vi.mocked(createServiceRoleClient).mockReturnValue(mockServiceClient);
+
+      // Act & Assert
+      const formData = new FormData();
+      formData.append("email", "user@example.com");
+      formData.append("password", "password123");
+
+      await expect(signIn(formData)).rejects.toThrow(
+        "Failed to verify user profile. Please try again."
+      );
+    });
+
+    it("should throw generic error for invalid credentials (wrong password)", async () => {
+      // Arrange
+      const { createClient } = await import("@/lib/supabase/server");
+
+      const mockSupabaseClient = {
+        auth: {
+          signInWithPassword: vi.fn().mockResolvedValue({
+            data: { user: null, session: null },
+            error: {
+              code: "invalid_credentials",
+              message: "Invalid login credentials",
+            },
+          }),
+        },
+      };
+
+      vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
+
+      // Act & Assert
+      const formData = new FormData();
+      formData.append("email", "user@example.com");
+      formData.append("password", "wrongpassword");
+
+      await expect(signIn(formData)).rejects.toThrow(
+        "Invalid email or password"
+      );
+    });
+
+    it("should surface rate limit errors clearly", async () => {
+      // Arrange
+      const { createClient } = await import("@/lib/supabase/server");
+
+      const mockSupabaseClient = {
+        auth: {
+          signInWithPassword: vi.fn().mockResolvedValue({
+            data: { user: null, session: null },
+            error: {
+              code: "rate_limit_error",
+              message: "Too many login attempts. Please try again later.",
+            },
+          }),
+        },
+      };
+
+      vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
+
+      // Act & Assert
+      const formData = new FormData();
+      formData.append("email", "user@example.com");
+      formData.append("password", "password123");
+
+      await expect(signIn(formData)).rejects.toThrow(
+        "Too many login attempts. Please try again later."
+      );
     });
   });
 
