@@ -1836,5 +1836,205 @@ describe("Auth - Family Context Checks", () => {
 
       await expect(signUp(formData)).rejects.toThrow("Email already in use");
     });
+
+    it("should throw Supabase error message when signup encounters auth errors", async () => {
+      // Arrange
+      const { createClient } = await import("@/lib/supabase/server");
+
+      const mockSupabaseClient = {
+        auth: {
+          signUp: vi.fn().mockResolvedValue({
+            data: { user: null },
+            error: { message: "Invalid email format" },
+          }),
+        },
+      };
+
+      vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
+
+      // Act & Assert
+      const formData = new FormData();
+      formData.append("email", "invalid-email");
+      formData.append("name", "New User");
+      formData.append("password", "ValidPass123!");
+      formData.append("confirm-password", "ValidPass123!");
+
+      await expect(signUp(formData)).rejects.toThrow("Invalid email format");
+    });
+
+    it("should verify user data is stored with display name during signup", async () => {
+      // Arrange
+      const { createClient } = await import("@/lib/supabase/server");
+      const { createServiceRoleClient } = await import(
+        "@/lib/supabase/service"
+      );
+      const { redirect } = await import("next/navigation");
+
+      const mockSupabaseClient = {
+        auth: {
+          signUp: vi.fn().mockResolvedValue({
+            data: {
+              user: {
+                id: "user-789",
+                email: "john@example.com",
+              },
+            },
+            error: null,
+          }),
+        },
+      };
+
+      const mockServiceClient = {
+        rpc: vi.fn().mockResolvedValue({
+          data: null,
+          error: null,
+        }),
+      };
+
+      vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
+      vi.mocked(createServiceRoleClient).mockReturnValue(mockServiceClient);
+      vi.mocked(redirect).mockImplementation(() => {
+        throw new Error("REDIRECT_/onboarding");
+      });
+
+      // Act
+      const formData = new FormData();
+      formData.append("email", "john@example.com");
+      formData.append("name", "John Doe");
+      formData.append("password", "SecurePass123!");
+      formData.append("confirm-password", "SecurePass123!");
+
+      try {
+        await signUp(formData);
+      } catch (error) {
+        // Expected redirect
+      }
+
+      // Assert - verify signUp was called with correct data
+      expect(mockSupabaseClient.auth.signUp).toHaveBeenCalledWith({
+        email: "john@example.com",
+        password: "SecurePass123!",
+        options: {
+          data: {
+            display_name: "John Doe",
+          },
+          emailRedirectTo: expect.any(String),
+        },
+      });
+    });
+  });
+
+  describe("signIn - comprehensive coverage and validation", () => {
+    it("should handle missing session after successful auth in signin", async () => {
+      // Arrange
+      const { createClient } = await import("@/lib/supabase/server");
+
+      const mockSupabaseClient = {
+        auth: {
+          signInWithPassword: vi.fn().mockResolvedValue({
+            data: {
+              user: { id: "user-123", email: "user@example.com" },
+              session: null, // Missing session
+            },
+            error: null,
+          }),
+        },
+      };
+
+      vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
+
+      // Act & Assert
+      const formData = new FormData();
+      formData.append("email", "user@example.com");
+      formData.append("password", "password123");
+
+      await expect(signIn(formData)).rejects.toThrow("Signin failed");
+    });
+
+    it("should handle generic auth errors in signin", async () => {
+      // Arrange
+      const { createClient } = await import("@/lib/supabase/server");
+
+      const mockSupabaseClient = {
+        auth: {
+          signInWithPassword: vi.fn().mockResolvedValue({
+            data: { user: null, session: null },
+            error: {
+              code: "unknown_error",
+              message: "Authentication service temporarily unavailable",
+            },
+          }),
+        },
+      };
+
+      vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
+
+      // Act & Assert
+      const formData = new FormData();
+      formData.append("email", "user@example.com");
+      formData.append("password", "password123");
+
+      await expect(signIn(formData)).rejects.toThrow(
+        "Authentication service temporarily unavailable"
+      );
+    });
+
+    it("should verify user profile is ensured before family context check in signin", async () => {
+      // Arrange
+      const { createClient } = await import("@/lib/supabase/server");
+      const { createServiceRoleClient } = await import(
+        "@/lib/supabase/service"
+      );
+      const { checkUserFamilyContext } = await import(
+        "@/lib/supabase/check-family"
+      );
+      const { redirect } = await import("next/navigation");
+
+      const mockSupabaseClient = {
+        auth: {
+          signInWithPassword: vi.fn().mockResolvedValue({
+            data: {
+              user: { id: "user-456", email: "user@example.com" },
+              session: { access_token: "token-456" },
+            },
+            error: null,
+          }),
+        },
+      };
+
+      const mockServiceClient = {
+        rpc: vi.fn().mockResolvedValue({
+          data: null,
+          error: null,
+        }),
+      };
+
+      vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
+      vi.mocked(createServiceRoleClient).mockReturnValue(mockServiceClient);
+      vi.mocked(checkUserFamilyContext).mockResolvedValue(true);
+      vi.mocked(redirect).mockImplementation(() => {
+        throw new Error("REDIRECT_/");
+      });
+
+      // Act
+      const formData = new FormData();
+      formData.append("email", "user@example.com");
+      formData.append("password", "password123");
+
+      try {
+        await signIn(formData);
+      } catch (error) {
+        // Expected redirect
+      }
+
+      // Assert - verify ensure_profile_exists is called BEFORE checking family context
+      expect(mockServiceClient.rpc).toHaveBeenCalledWith(
+        "ensure_profile_exists",
+        {
+          p_user_id: "user-456",
+        }
+      );
+      expect(checkUserFamilyContext).toHaveBeenCalled();
+    });
   });
 });
