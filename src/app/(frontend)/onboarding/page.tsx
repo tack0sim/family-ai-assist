@@ -8,12 +8,12 @@ import { createClient } from "@/lib/supabase/server";
 export default async function OnboardingPage() {
   // Check if user is authenticated
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data } = await supabase.auth.getClaims();
+
+  const isAuthenticated = !!data?.claims;
 
   // Redirect to login if not authenticated
-  if (!user) {
+  if (!isAuthenticated) {
     redirect("/auth/login?next=/onboarding");
   }
 
