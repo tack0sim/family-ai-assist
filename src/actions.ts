@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 import { getBaseURL } from "@/lib/utils/get-base-url";
 import { validatePasswordComplexity } from "@/lib/utils/validate-password";
+import { getUserDisplayName } from "./lib/supabase/user";
 
 export async function socialSignIn(invitationToken?: string) {
   const header = await headers();
@@ -409,7 +410,7 @@ export async function inviteMembers(familyId: string, emails: string[]) {
   await sendInvitationEmails({
     emails: invitations.map((inv) => ({ email: inv.email, token: inv.token })),
     familyName,
-    invitedByName: userData.user?.user_metadata?.display_name,
+    invitedByName: getUserDisplayName(userData.user),
     expiresAt: new Date(invitations[0]!.expires_at),
     baseUrl,
   });

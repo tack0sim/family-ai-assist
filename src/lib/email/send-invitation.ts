@@ -1,6 +1,6 @@
 import { render } from "react-email";
 import { Resend } from "resend";
-import { InvitationEmail } from "@/emails/invitation-email";
+import InvitationEmail from "../../../emails/invitation-email";
 
 export interface SendInvitationEmailParams {
   baseUrl?: string;

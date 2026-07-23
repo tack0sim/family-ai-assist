@@ -17,12 +17,12 @@ interface InvitationEmailProps {
   invitedByName?: string;
 }
 
-export const InvitationEmail = ({
+export default function InvitationEmail({
   familyName,
   invitedByName = "A family member",
   invitationLink,
   expiresAt,
-}: InvitationEmailProps) => {
+}: InvitationEmailProps) {
   const formattedDate = expiresAt.toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",
@@ -77,7 +77,7 @@ export const InvitationEmail = ({
       </Body>
     </Html>
   );
-};
+}
 
 InvitationEmail.PreviewProps = {
   familyName: "The Johnsons",
