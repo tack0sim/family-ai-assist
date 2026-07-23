@@ -60,7 +60,6 @@ describe("Family Management - createFamily", () => {
     // Arrange
     const { createClient } = await import("@/lib/supabase/server");
     const { createServiceRoleClient } = await import("@/lib/supabase/service");
-    const { redirect } = await import("next/navigation");
 
     const familyId = "family-123";
     const mockSupabaseClient = {
@@ -107,22 +106,14 @@ describe("Family Management - createFamily", () => {
 
     vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
     vi.mocked(createServiceRoleClient).mockReturnValue(mockServiceClient);
-    vi.mocked(redirect).mockImplementation(() => {
-      throw new Error("REDIRECT_/");
-    });
 
     // Act
     const formData = new FormData();
     formData.append("name", "Smith Family");
-
-    try {
-      await createFamily(formData);
-    } catch (error: any) {
-      // Expected redirect
-    }
+    const result = await createFamily(formData);
 
     // Assert
-    expect(redirect).toHaveBeenCalledWith("/");
+    expect(result).toBe(familyId);
   });
 
   it("should throw error if family name is missing", async () => {

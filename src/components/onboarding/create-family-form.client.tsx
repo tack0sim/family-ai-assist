@@ -1,6 +1,7 @@
 "use client";
 
 import { isRedirectError } from "next/dist/client/components/redirect-error";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createFamily } from "@/actions";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { createFamilySchema } from "@/lib/schemas/onboarding";
 import { cn } from "@/lib/utils";
 import { Spinner } from "../ui/spinner";
+import { InviteFirstMembersModal } from "./invite-first-members-modal.client";
 
 interface CreateFamilyFormProps extends React.ComponentProps<"div"> {}
 
@@ -28,8 +30,10 @@ export function CreateFamilyForm({
   className,
   ...props
 }: CreateFamilyFormProps) {
+  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [familyId, setFamilyId] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -55,7 +59,8 @@ export function CreateFamilyForm({
       const serverFormData = new FormData();
       serverFormData.set("name", familyName);
 
-      await createFamily(serverFormData);
+      const createdFamilyId = await createFamily(serverFormData);
+      setFamilyId(createdFamilyId);
     } catch (err) {
       if (isRedirectError(err)) {
         throw err;
@@ -68,6 +73,21 @@ export function CreateFamilyForm({
       }
     }
   };
+
+  // Show invite modal after family creation
+  if (familyId) {
+    return (
+      <InviteFirstMembersModal
+        familyId={familyId}
+        onSkip={() => {
+          router.push("/");
+        }}
+        onSuccess={() => {
+          router.push("/");
+        }}
+      />
+    );
+  }
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>

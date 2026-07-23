@@ -193,8 +193,8 @@ export async function createFamily(formData: FormData) {
     throw new Error(memErr.message || "Failed to create family membership");
   }
 
-  // redirect to root (UI deferred)
-  redirect("/");
+  // Return family ID for the client to handle modal display and redirect
+  return family.id;
 }
 
 export async function acceptInvitation(token: string) {
