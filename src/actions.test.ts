@@ -224,6 +224,16 @@ describe("Family Management - acceptInvitation", () => {
           },
         }),
       },
+      from: vi.fn((table: string) => {
+        if (table === "family_members") {
+          return {
+            insert: vi.fn().mockResolvedValue({
+              data: null,
+              error: null,
+            }),
+          };
+        }
+      }),
     };
 
     const mockServiceClient = {
