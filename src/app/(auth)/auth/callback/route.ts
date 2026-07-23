@@ -6,6 +6,7 @@ import { getBaseURL } from "@/lib/utils/get-base-url";
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const code = searchParams.get("code");
+  const invitationToken = searchParams.get("invitation_token");
   // if "next" is in param, use it as the redirect URL
   let next = searchParams.get("next") ?? "/";
   if (!next.startsWith("/")) {
@@ -22,7 +23,11 @@ export async function GET(request: Request) {
 
       // Check if user has family context
       const hasFamily = await checkUserFamilyContext();
-      const destination = hasFamily ? next : "/onboarding";
+      let destination = hasFamily ? next : "/onboarding";
+
+      if (invitationToken && !hasFamily) {
+        destination += `?invitation_token=${encodeURIComponent(invitationToken)}`;
+      }
 
       const baseUrl = getBaseURL(request.headers);
       return NextResponse.redirect(`${baseUrl}${destination}`);

@@ -25,8 +25,9 @@ import { SignInButton } from "./signin-button.client";
 
 export function LoginForm({
   className,
+  invitationToken,
   ...props
-}: React.ComponentProps<"div">) {
+}: React.ComponentProps<"div"> & { invitationToken?: string }) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -35,7 +36,7 @@ export function LoginForm({
     setError(null);
 
     try {
-      await signIn(formData);
+      await signIn(formData, invitationToken);
     } catch (error) {
       setLoading(false);
       setError(
@@ -54,7 +55,7 @@ export function LoginForm({
           <form action={handleSignIn}>
             <FieldGroup>
               <Field>
-                <SignInButton />
+                <SignInButton invitationToken={invitationToken} />
               </Field>
               <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card">
                 Or continue with

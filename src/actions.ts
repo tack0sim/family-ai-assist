@@ -9,16 +9,21 @@ import { createServiceRoleClient } from "@/lib/supabase/service";
 import { getBaseURL } from "@/lib/utils/get-base-url";
 import { validatePasswordComplexity } from "@/lib/utils/validate-password";
 
-export async function socialSignIn() {
+export async function socialSignIn(invitationToken?: string) {
   const header = await headers();
   const baseUrl = getBaseURL(header);
 
   const supabase = await createClient();
 
+  let redirectTo = `${baseUrl}/auth/callback`;
+  if (invitationToken) {
+    redirectTo += `?invitation_token=${encodeURIComponent(invitationToken)}`;
+  }
+
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: `${baseUrl}/auth/callback`,
+      redirectTo,
       scopes: "openid email profile",
       queryParams: {
         access_type: "offline",
@@ -34,7 +39,7 @@ export async function socialSignIn() {
   redirect(data.url);
 }
 
-export async function signUp(formData: FormData) {
+export async function signUp(formData: FormData, invitationToken?: string) {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
   const confirmPassword = formData.get("confirm-password") as string;
@@ -74,10 +79,15 @@ export async function signUp(formData: FormData) {
     throw new Error("Failed to verify user profile. Please try again.");
   }
 
-  redirect("/onboarding");
+  let destination = "/onboarding";
+  if (invitationToken) {
+    destination += `?invitation_token=${encodeURIComponent(invitationToken)}`;
+  }
+
+  redirect(destination);
 }
 
-export async function signIn(formData: FormData) {
+export async function signIn(formData: FormData, invitationToken?: string) {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
 
@@ -113,7 +123,11 @@ export async function signIn(formData: FormData) {
 
   // Check if user has family context
   const hasFamily = await checkUserFamilyContext();
-  const destination = hasFamily ? "/" : "/onboarding";
+  let destination = hasFamily ? "/" : "/onboarding";
+
+  if (!hasFamily && invitationToken) {
+    destination += `?invitation_token=${encodeURIComponent(invitationToken)}`;
+  }
 
   redirect(destination);
 }

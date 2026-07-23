@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 
 interface SignInButtonProps {
   className?: string;
+  invitationToken?: string;
   variantOverride?:
     | "default"
     | "destructive"
@@ -19,12 +20,13 @@ interface SignInButtonProps {
 export function SignInButton({
   className,
   variantOverride,
+  invitationToken,
 }: SignInButtonProps) {
   const [pending, setPending] = useState(false);
 
   const handleClick = async () => {
     setPending(true);
-    await socialSignIn();
+    await socialSignIn(invitationToken);
     setPending(false);
   };
 

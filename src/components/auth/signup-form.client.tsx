@@ -1,6 +1,5 @@
 "use client";
 
-import { isRedirectError } from "next/dist/client/components/redirect-error";
 import Link from "next/link";
 import { useState } from "react";
 import { signUp } from "@/actions";
@@ -24,10 +23,15 @@ import { cn } from "@/lib/utils";
 import { Spinner } from "../ui/spinner";
 import { SignInButton } from "./signin-button.client";
 
+interface SignupFormProps extends React.ComponentProps<"div"> {
+  invitationToken?: string;
+}
+
 export function SignupForm({
   className,
+  invitationToken,
   ...props
-}: React.ComponentProps<"div">) {
+}: SignupFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -43,11 +47,8 @@ export function SignupForm({
     setLoading(true);
 
     try {
-      await signUp(formData);
+      await signUp(formData, invitationToken);
     } catch (error) {
-      if (isRedirectError(error)) {
-        throw error;
-      }
       setLoading(false);
       if (error instanceof Error) {
         setError(error.message);
@@ -66,7 +67,7 @@ export function SignupForm({
           <form action={handleSignUp}>
             <FieldGroup>
               <Field>
-                <SignInButton />
+                <SignInButton invitationToken={invitationToken} />
               </Field>
               <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card">
                 Or continue with email
