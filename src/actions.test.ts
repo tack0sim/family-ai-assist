@@ -40,6 +40,7 @@ vi.mock("react-email", () => ({
 
 import {
   acceptInvitation,
+  autoAcceptInvitation,
   createFamily,
   inviteMembers,
   removeMember,
@@ -435,6 +436,320 @@ describe("Family Management - acceptInvitation", () => {
     // Act & Assert
     await expect(acceptInvitation("accepted-token")).rejects.toThrow(
       "Invitation not pending"
+    );
+  });
+});
+
+describe("Family Management - autoAcceptInvitation", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("should auto-accept invitation when user has zero families", async () => {
+    // Arrange
+    const { createClient } = await import("@/lib/supabase/server");
+    const { createServiceRoleClient } = await import("@/lib/supabase/service");
+    const { checkUserFamilyContext } = await import(
+      "@/lib/supabase/check-family"
+    );
+    const { redirect } = await import("next/navigation");
+
+    const token = "invite-token-123";
+    const familyId = "family-456";
+    const userId = "user-456";
+
+    const mockSupabaseClient = {
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: {
+            user: {
+              id: userId,
+              email: "invited@example.com",
+            },
+          },
+        }),
+      },
+      from: vi.fn((table: string) => {
+        if (table === "family_members") {
+          return {
+            insert: vi.fn().mockResolvedValue({
+              data: null,
+              error: null,
+            }),
+          };
+        }
+      }),
+    };
+
+    const mockServiceClient = {
+      from: vi.fn((table: string) => {
+        if (table === "invitations") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: {
+                    id: "invite-id-123",
+                    family_id: familyId,
+                    email: "invited@example.com",
+                    expires_at: new Date(Date.now() + 86_400_000).toISOString(),
+                    status: "pending",
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+            update: vi.fn().mockReturnValue({
+              eq: vi.fn().mockResolvedValue({
+                data: null,
+                error: null,
+              }),
+            }),
+          };
+        }
+      }),
+    };
+
+    vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
+    vi.mocked(createServiceRoleClient).mockReturnValue(mockServiceClient);
+    vi.mocked(checkUserFamilyContext).mockResolvedValue(false);
+    vi.mocked(redirect).mockImplementation(() => {
+      throw new Error("REDIRECT_/");
+    });
+
+    // Act & Assert
+    try {
+      await autoAcceptInvitation(token);
+    } catch (error: any) {
+      // Expected redirect
+    }
+
+    expect(redirect).toHaveBeenCalledWith("/");
+  });
+
+  it("should throw error if user already has families", async () => {
+    // Arrange
+    const { createClient } = await import("@/lib/supabase/server");
+    const { checkUserFamilyContext } = await import(
+      "@/lib/supabase/check-family"
+    );
+
+    const token = "invite-token-123";
+    const userId = "user-456";
+
+    const mockSupabaseClient = {
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: {
+            user: {
+              id: userId,
+              email: "invited@example.com",
+            },
+          },
+        }),
+      },
+    };
+
+    vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
+    vi.mocked(checkUserFamilyContext).mockResolvedValue(true);
+
+    // Act & Assert
+    await expect(autoAcceptInvitation(token)).rejects.toThrow(
+      /can only auto-accept invitations when joining your first family/i
+    );
+  });
+
+  it("should throw error if invitation token is missing", async () => {
+    // Act & Assert
+    await expect(autoAcceptInvitation("")).rejects.toThrow(
+      "This invitation link is no longer valid"
+    );
+  });
+
+  it("should throw error if user is not authenticated", async () => {
+    // Arrange
+    const { createClient } = await import("@/lib/supabase/server");
+
+    const mockSupabaseClient = {
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: null },
+        }),
+      },
+    };
+
+    vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
+
+    // Act & Assert
+    await expect(autoAcceptInvitation("token-123")).rejects.toThrow(
+      "Not authenticated"
+    );
+  });
+
+  it("should throw error if invitation is not found", async () => {
+    // Arrange
+    const { createClient } = await import("@/lib/supabase/server");
+    const { createServiceRoleClient } = await import("@/lib/supabase/service");
+    const { checkUserFamilyContext } = await import(
+      "@/lib/supabase/check-family"
+    );
+
+    const token = "invalid-token";
+    const userId = "user-456";
+
+    const mockSupabaseClient = {
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: {
+            user: {
+              id: userId,
+              email: "invited@example.com",
+            },
+          },
+        }),
+      },
+    };
+
+    const mockServiceClient = {
+      from: vi.fn((table: string) => {
+        if (table === "invitations") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: null,
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+      }),
+    };
+
+    vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
+    vi.mocked(createServiceRoleClient).mockReturnValue(mockServiceClient);
+    vi.mocked(checkUserFamilyContext).mockResolvedValue(false);
+
+    // Act & Assert
+    await expect(autoAcceptInvitation(token)).rejects.toThrow(
+      "This invitation link is no longer valid"
+    );
+  });
+
+  it("should throw error if invitation has expired", async () => {
+    // Arrange
+    const { createClient } = await import("@/lib/supabase/server");
+    const { createServiceRoleClient } = await import("@/lib/supabase/service");
+    const { checkUserFamilyContext } = await import(
+      "@/lib/supabase/check-family"
+    );
+
+    const token = "expired-token";
+    const familyId = "family-456";
+    const userId = "user-456";
+
+    const mockSupabaseClient = {
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: {
+            user: {
+              id: userId,
+              email: "invited@example.com",
+            },
+          },
+        }),
+      },
+    };
+
+    const mockServiceClient = {
+      from: vi.fn((table: string) => {
+        if (table === "invitations") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: {
+                    id: "invite-id-123",
+                    family_id: familyId,
+                    email: "invited@example.com",
+                    expires_at: new Date(Date.now() - 86_400_000).toISOString(), // 1 day ago
+                    status: "pending",
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+      }),
+    };
+
+    vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
+    vi.mocked(createServiceRoleClient).mockReturnValue(mockServiceClient);
+    vi.mocked(checkUserFamilyContext).mockResolvedValue(false);
+
+    // Act & Assert
+    await expect(autoAcceptInvitation(token)).rejects.toThrow(
+      "This invitation has expired. Ask the family admin to send a new one"
+    );
+  });
+
+  it("should throw error if invitation has already been accepted", async () => {
+    // Arrange
+    const { createClient } = await import("@/lib/supabase/server");
+    const { createServiceRoleClient } = await import("@/lib/supabase/service");
+    const { checkUserFamilyContext } = await import(
+      "@/lib/supabase/check-family"
+    );
+
+    const token = "accepted-token";
+    const familyId = "family-456";
+    const userId = "user-456";
+
+    const mockSupabaseClient = {
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: {
+            user: {
+              id: userId,
+              email: "invited@example.com",
+            },
+          },
+        }),
+      },
+    };
+
+    const mockServiceClient = {
+      from: vi.fn((table: string) => {
+        if (table === "invitations") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: {
+                    id: "invite-id-123",
+                    family_id: familyId,
+                    email: "invited@example.com",
+                    expires_at: new Date(Date.now() + 86_400_000).toISOString(),
+                    status: "accepted",
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+      }),
+    };
+
+    vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
+    vi.mocked(createServiceRoleClient).mockReturnValue(mockServiceClient);
+    vi.mocked(checkUserFamilyContext).mockResolvedValue(false);
+
+    // Act & Assert
+    await expect(autoAcceptInvitation(token)).rejects.toThrow(
+      "You've already joined this family"
     );
   });
 });

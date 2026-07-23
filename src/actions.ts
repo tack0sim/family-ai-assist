@@ -260,6 +260,92 @@ export async function acceptInvitation(token: string) {
   redirect("/");
 }
 
+/**
+ * Auto-accept an invitation during onboarding.
+ * Only accepts if user has ZERO families (no created families and no active memberships).
+ * Returns success or throws error with user-friendly message.
+ */
+export async function autoAcceptInvitation(token: string) {
+  if (!token) {
+    throw new Error("This invitation link is no longer valid");
+  }
+
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  const userId = userData?.user?.id;
+  if (!userId) {
+    throw new Error("Not authenticated");
+  }
+
+  // Check if user already has any families
+  const hasFamily = await checkUserFamilyContext();
+  if (hasFamily) {
+    throw new Error(
+      "You can only auto-accept invitations when joining your first family. Please use the join form for additional families."
+    );
+  }
+
+  // Use service role to fetch invitation (user can only see their own by email)
+  const svc = createServiceRoleClient();
+  const { data: invite, error: invErr } = await svc
+    .from("invitations")
+    .select("id, family_id, email, expires_at, status")
+    .eq("token", token)
+    .maybeSingle();
+
+  if (invErr) {
+    throw new Error("This invitation link is no longer valid");
+  }
+  if (!invite) {
+    throw new Error("This invitation link is no longer valid");
+  }
+  if (invite.status === "accepted") {
+    throw new Error("You've already joined this family");
+  }
+  if (invite.status === "expired") {
+    throw new Error(
+      "This invitation has expired. Ask the family admin to send a new one"
+    );
+  }
+  if (invite.status !== "pending") {
+    throw new Error("This invitation link is no longer valid");
+  }
+  if (new Date(invite.expires_at) < new Date()) {
+    throw new Error(
+      "This invitation has expired. Ask the family admin to send a new one"
+    );
+  }
+
+  // Verify email matches authenticated user
+  const userEmail = userData.user?.email;
+  if (invite.email !== userEmail) {
+    throw new Error("This invitation is not for your email address");
+  }
+
+  // Create family_members entry using authenticated user (RLS policy enforces role='member')
+  const { error: memErr } = await supabase.from("family_members").insert({
+    family_id: invite.family_id,
+    user_id: userId,
+    role: "member",
+    status: "active",
+    joined_at: new Date().toISOString(),
+  });
+  if (memErr) {
+    throw new Error("Failed to join family. Please try again.");
+  }
+
+  // Mark invitation accepted (use service role for this update as RLS blocks it)
+  const { error: updErr } = await svc
+    .from("invitations")
+    .update({ status: "accepted" })
+    .eq("id", invite.id);
+  if (updErr) {
+    throw new Error("Failed to complete the invitation. Please try again.");
+  }
+
+  redirect("/");
+}
+
 export async function inviteMembers(familyId: string, emails: string[]) {
   if (!familyId) {
     throw new Error("Missing family ID");

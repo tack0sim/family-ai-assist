@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { CreateFamilyForm } from "@/components/onboarding/create-family-form.client";
+import { InvitationHandler } from "@/components/onboarding/invitation-handler.client";
 import { JoinFamilyForm } from "@/components/onboarding/join-family-form.client";
 import { checkUserFamilyContext } from "@/lib/supabase/check-family";
 import { createClient } from "@/lib/supabase/server";
@@ -33,6 +34,9 @@ export default async function OnboardingPage() {
             Get started by creating a family or joining an existing one
           </p>
         </div>
+
+        {/* Invitation auto-accept handler */}
+        <InvitationHandler />
 
         <div className="grid gap-8">
           {/* Create Family Section */}
