@@ -5,5 +5,5 @@ export default function AuthLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return <>{children}</>;
+  return <body className="flex grow flex-col">{children}</body>;
 }

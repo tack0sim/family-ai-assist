@@ -22,9 +22,9 @@ export async function AuthenticatedLayout({
   const { data: userData } = await supabase.auth.getUser();
 
   return (
-    <body className="flex grow flex-col">
+    <>
       {userData.user && <AppSidebar user={userData.user} />}
       <SidebarInset>{children}</SidebarInset>
-    </body>
+    </>
   );
 }

@@ -16,12 +16,14 @@ export default async function AppLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <SidebarProvider>
-      <AuthenticatedLayout>
-        <Header />
-        {children}
-        <Footer />
-      </AuthenticatedLayout>
-    </SidebarProvider>
+    <body className="flex grow flex-col">
+      <SidebarProvider>
+        <AuthenticatedLayout>
+          <Header />
+          {children}
+          <Footer />
+        </AuthenticatedLayout>
+      </SidebarProvider>
+    </body>
   );
 }
