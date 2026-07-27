@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { signUp } from "@/actions";
 import { Button } from "@/components/ui/button";
 import {
@@ -38,9 +38,9 @@ export function SignupForm({
     ? `/auth/login?${searchParams.toString()}`
     : "/auth/login";
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [isPending, startTransition] = useTransition();
 
-  const handleSignUp = async (formData: FormData) => {
+  const handleSignUp = (formData: FormData) => {
     const password = formData.get("password") as string;
     const confirmPassword = formData.get("confirm-password") as string;
 
@@ -49,16 +49,15 @@ export function SignupForm({
       return;
     }
 
-    setLoading(true);
-
-    try {
-      await signUp(formData, invitationToken);
-    } catch (error) {
-      setLoading(false);
-      if (error instanceof Error) {
-        setError(error.message);
+    startTransition(async () => {
+      try {
+        await signUp(formData, invitationToken);
+      } catch (error) {
+        if (error instanceof Error) {
+          setError(error.message);
+        }
       }
-    }
+    });
   };
 
   return (
@@ -125,8 +124,8 @@ export function SignupForm({
                 </FieldDescription>
               </Field>
               <Field>
-                <Button disabled={loading} type="submit">
-                  {loading ? (
+                <Button disabled={isPending} type="submit">
+                  {isPending ? (
                     <>
                       <Spinner className="mr-2" />
                       Creating account...
@@ -144,10 +143,6 @@ export function SignupForm({
           </form>
         </CardContent>
       </Card>
-      {/* <FieldDescription className="px-6 text-center">
-        By clicking continue, you agree to our <a href="#">Terms of Service</a>{" "}
-        and <a href="#">Privacy Policy</a>.
-      </FieldDescription> */}
     </div>
   );
 }

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { signIn } from "@/actions";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,20 +34,21 @@ export function LoginForm({
     ? `/auth/signup?${searchParams.toString()}`
     : "/auth/signup";
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [isPending, startTransition] = useTransition();
 
-  const handleSignIn = async (formData: FormData) => {
-    setLoading(true);
+  const handleSignIn = (formData: FormData) => {
     setError(null);
-
-    try {
-      await signIn(formData, invitationToken);
-    } catch (error) {
-      setLoading(false);
-      setError(
-        error instanceof Error ? error.message : "An unexpected error occurred"
-      );
-    }
+    startTransition(async () => {
+      try {
+        await signIn(formData, invitationToken);
+      } catch (error) {
+        setError(
+          error instanceof Error
+            ? error.message
+            : "An unexpected error occurred"
+        );
+      }
+    });
   };
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
@@ -80,8 +81,8 @@ export function LoginForm({
                 <Input id="password" name="password" required type="password" />
               </Field>
               <Field>
-                <Button disabled={loading} type="submit">
-                  {loading ? (
+                <Button disabled={isPending} type="submit">
+                  {isPending ? (
                     <>
                       <Spinner className="mr-2" />
                       Logging in...
@@ -100,10 +101,6 @@ export function LoginForm({
           </form>
         </CardContent>
       </Card>
-      {/* <FieldDescription className="px-6 text-center">
-        By clicking continue, you agree to our <a href="#">Terms of Service</a>{" "}
-        and <a href="#">Privacy Policy</a>.
-      </FieldDescription> */}
     </div>
   );
 }
