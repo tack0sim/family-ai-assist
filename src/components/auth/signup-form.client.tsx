@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { signUp } from "@/actions";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,10 @@ export function SignupForm({
   invitationToken,
   ...props
 }: SignupFormProps) {
+  const searchParams = useSearchParams();
+  const loginHref = invitationToken
+    ? `/auth/login?${searchParams.toString()}`
+    : "/auth/login";
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -132,8 +137,7 @@ export function SignupForm({
                 </Button>
                 {error && <p className="mt-2 text-red-600 text-sm">{error}</p>}
                 <FieldDescription className="text-center">
-                  Already have an account?{" "}
-                  <Link href="/auth/login">Sign in</Link>
+                  Already have an account? <Link href={loginHref}>Sign in</Link>
                 </FieldDescription>
               </Field>
             </FieldGroup>
