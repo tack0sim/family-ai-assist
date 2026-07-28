@@ -6,6 +6,12 @@ import { sendInvitationEmails } from "@/lib/email/send-invitation";
 import { checkUserFamilyContext } from "@/lib/supabase/check-family";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service";
+import type {
+  FamilyData,
+  FamilyInvitation,
+  FamilyMember,
+  FamilyMemberRow,
+} from "@/lib/types/settings";
 import { getBaseURL } from "@/lib/utils/get-base-url";
 import { validatePasswordComplexity } from "@/lib/utils/validate-password";
 import { getUserDisplayName } from "./lib/supabase/user";
@@ -660,4 +666,119 @@ export async function resendInvitation(familyId: string, invitationId: string) {
     expiresAt: new Date(newExpiry),
     baseUrl,
   });
+}
+
+export async function updateUserProfile(displayName: string) {
+  if (!displayName || displayName.trim().length === 0) {
+    throw new Error("Display name is required");
+  }
+
+  if (displayName.trim().length < 2) {
+    throw new Error("Display name must be at least 2 characters");
+  }
+
+  if (displayName.trim().length > 100) {
+    throw new Error("Display name must be less than 100 characters");
+  }
+
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  const userId = userData?.user?.id;
+
+  if (!userId) {
+    throw new Error("Not authenticated");
+  }
+
+  const { error } = await supabase.auth.updateUser({
+    data: {
+      display_name: displayName.trim(),
+    },
+  });
+
+  if (error) {
+    throw new Error(error.message || "Failed to update profile");
+  }
+}
+
+export async function getFamilyData(): Promise<FamilyData> {
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  const userId = userData?.user?.id;
+
+  if (!userId) {
+    throw new Error("Not authenticated");
+  }
+
+  // Get current user's family and role
+  const { data: currentMember, error: memberError } = await supabase
+    .from("family_members")
+    .select("family_id, role")
+    .eq("user_id", userId)
+    .single();
+
+  if (memberError || !currentMember) {
+    throw new Error("User not in any family");
+  }
+
+  const familyId = currentMember.family_id;
+  const userRole = currentMember.role as "admin" | "member";
+
+  // Fetch all family members
+  const { data: membersData, error: membersError } = await supabase
+    .from("family_members")
+    .select(
+      `
+        id,
+        user_id,
+        family_id,
+        role,
+        status,
+        joined_at,
+        profiles(display_name)
+      `
+    )
+    .eq("family_id", familyId)
+    .order("joined_at", { ascending: true });
+
+  if (membersError) {
+    console.error("Error fetching members:", membersError);
+    throw new Error("Failed to fetch family members");
+  }
+
+  // Map the raw Supabase data to our FamilyMember type
+  // Note: Email lookup would require a separate query or RLS changes
+  const members: FamilyMember[] = (
+    (membersData || []) as unknown as FamilyMemberRow[]
+  ).map((member) => ({
+    id: member.id,
+    user_id: member.user_id,
+    family_id: member.family_id,
+    role: member.role,
+    status: member.status,
+    joined_at: member.joined_at,
+    display_name: member.profiles?.display_name || undefined,
+    email: undefined, // Email retrieval would require separate logic or schema change
+  }));
+
+  let invitations: FamilyInvitation[] = [];
+  if (userRole === "admin") {
+    const { data: invData, error: invError } = await supabase
+      .from("invitations")
+      .select("*")
+      .eq("family_id", familyId)
+      .order("created_at", { ascending: false });
+
+    if (invError) {
+      console.error("Error fetching invitations:", invError);
+    } else {
+      invitations = (invData || []) as FamilyInvitation[];
+    }
+  }
+
+  return {
+    familyId,
+    userRole,
+    members,
+    invitations,
+  };
 }

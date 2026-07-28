@@ -1,0 +1,55 @@
+"use client";
+
+import { useSearchParams } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { FamilyTab } from "./family-tab.client";
+import { ProfileTab } from "./profile-tab.client";
+
+const TABS = [
+  { id: "profile", label: "Profile" },
+  { id: "family", label: "Family" },
+] as const;
+
+type TabId = (typeof TABS)[number]["id"];
+
+export function SettingsContent() {
+  const searchParams = useSearchParams();
+  const currentTab = (searchParams.get("tab") || "profile") as TabId;
+
+  const isValidTab = TABS.some((tab) => tab.id === currentTab);
+  const activeTab = isValidTab ? currentTab : "profile";
+
+  const handleTabChange = (tabId: TabId) => {
+    const params = new URLSearchParams(searchParams);
+    params.set("tab", tabId);
+    window.history.replaceState(null, "", `?${params.toString()}`);
+  };
+
+  return (
+    <div className="flex flex-col gap-6">
+      {/* Tab Navigation */}
+      <div className="flex gap-2 border-gray-200 border-b">
+        {TABS.map((tab) => (
+          <Button
+            className={
+              activeTab === tab.id
+                ? "rounded-none border-current border-b-2"
+                : ""
+            }
+            key={tab.id}
+            onClick={() => handleTabChange(tab.id)}
+            variant={activeTab === tab.id ? "default" : "ghost"}
+          >
+            {tab.label}
+          </Button>
+        ))}
+      </div>
+
+      {/* Tab Content */}
+      <div>
+        {activeTab === "profile" && <ProfileTab />}
+        {activeTab === "family" && <FamilyTab />}
+      </div>
+    </div>
+  );
+}
