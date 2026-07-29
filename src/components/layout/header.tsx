@@ -1,13 +1,5 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "../ui/breadcrumb";
 import { Button } from "../ui/button";
 import { Separator } from "../ui/separator";
 import { SidebarTrigger } from "../ui/sidebar";
@@ -27,7 +19,7 @@ export async function Header() {
               className="mr-2 data-vertical:h-4 data-vertical:self-auto"
               orientation="vertical"
             />
-            <Breadcrumb>
+            {/* <Breadcrumb>
               <BreadcrumbList>
                 <BreadcrumbItem className="hidden md:block">
                   <BreadcrumbLink href="#">
@@ -39,7 +31,10 @@ export async function Header() {
                   <BreadcrumbPage>Data Fetching</BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
-            </Breadcrumb>
+            </Breadcrumb> */}
+            <span className="font-normal text-foreground text-xs">
+              Welcome to Family Assist
+            </span>
           </div>
         ) : (
           <div className="flex items-center gap-2 px-4">

@@ -1,5 +1,6 @@
 "use client";
 
+import { LogOutIcon } from "lucide-react";
 import { redirect, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -34,6 +35,7 @@ export function SignOutButton({
       onClick={handleSignOut}
       variant={variantOverride ?? "default"}
     >
+      <LogOutIcon />
       Sign Out
     </Button>
   );

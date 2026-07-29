@@ -1,19 +1,11 @@
 "use client";
 
 import type { User } from "@supabase/supabase-js";
-import {
-  BadgeCheckIcon,
-  BellIcon,
-  ChevronsUpDownIcon,
-  CreditCardIcon,
-  LogOutIcon,
-  SparklesIcon,
-} from "lucide-react";
+import { ChevronsUpDownIcon } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -27,7 +19,6 @@ import {
 } from "@/components/ui/sidebar";
 import { getUserAvatarUrl, getUserDisplayName } from "@/lib/supabase/user";
 import { SignOutButton } from "./auth/signout-button.client";
-import { Button } from "./ui/button";
 
 export function NavUser({ user }: { user?: User }) {
   const { isMobile } = useSidebar();
@@ -90,39 +81,18 @@ export function NavUser({ user }: { user?: User }) {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuGroup>
-                  <DropdownMenuItem>
-                    <SparklesIcon />
-                    Upgrade to Pro
-                  </DropdownMenuItem>
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-                <DropdownMenuGroup>
-                  <DropdownMenuItem>
-                    <BadgeCheckIcon />
-                    Account
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <CreditCardIcon />
-                    Billing
-                  </DropdownMenuItem>
+                {/* <DropdownMenuGroup>
                   <DropdownMenuItem>
                     <BellIcon />
                     Notifications
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
-                <DropdownMenuSeparator />
+                <DropdownMenuSeparator /> */}
                 <DropdownMenuItem>
-                  <Button
+                  <SignOutButton
                     className="flex w-full justify-start gap-1 p-0"
-                    variant="ghost"
-                  >
-                    <LogOutIcon />
-                    <SignOutButton
-                      className="justify-start p-0"
-                      variantOverride="ghost"
-                    />
-                  </Button>
+                    variantOverride="ghost"
+                  />
                 </DropdownMenuItem>
               </>
             )}
