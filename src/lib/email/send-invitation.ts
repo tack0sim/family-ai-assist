@@ -1,4 +1,3 @@
-import { render } from "react-email";
 import { Resend } from "resend";
 import InvitationEmail from "../../../emails/invitation-email";
 
@@ -38,22 +37,17 @@ export async function sendInvitationEmail(params: SendInvitationEmailParams) {
     // Build the invitation link
     const invitationLink = `${baseUrl}/invite/${token}`;
 
-    // Render the email template to HTML
-    const emailHtml = render(
-      InvitationEmail({
-        familyName,
-        invitedByName,
-        invitationLink,
-        expiresAt,
-      })
-    );
-
     // Send the email
     const result = await resend.emails.send({
       from,
       to: email,
       subject: `Join ${familyName} on Family Assist`,
-      react: emailHtml,
+      react: InvitationEmail({
+        familyName,
+        invitedByName,
+        invitationLink,
+        expiresAt,
+      }),
     });
 
     if (result.error) {

@@ -11,11 +11,7 @@ import {
 } from "@/lib/supabase/family";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service";
-import type {
-  FamilyData,
-  FamilyInvitation,
-  FamilyMember,
-} from "@/lib/types/settings";
+import type { FamilyData, FamilyInvitation } from "@/lib/types/settings";
 import { getBaseURL } from "@/lib/utils/get-base-url";
 import { validatePasswordComplexity } from "@/lib/utils/validate-password";
 import { getUserDisplayName } from "./lib/supabase/user";
@@ -666,7 +662,7 @@ export async function resendInvitation(familyId: string, invitationId: string) {
   await sendInvitationEmails({
     emails: [{ email: invitation.email, token: newToken }],
     familyName,
-    invitedByName: userData.user?.user_metadata?.display_name,
+    invitedByName: getUserDisplayName(userData.user),
     expiresAt: new Date(newExpiry),
     baseUrl,
   });
