@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { getFamilyData } from "@/actions";
 import { SettingsContent } from "@/components/settings/settings-content.client";
 import { checkUserFamilyContext } from "@/lib/supabase/check-family";
 import { createClient } from "@/lib/supabase/server";
@@ -20,6 +21,8 @@ export default async function SettingsPage() {
     redirect("/onboarding");
   }
 
+  const familyData = await getFamilyData();
+
   return (
     <div className="flex flex-col gap-6 px-4 py-8">
       <div>
@@ -27,7 +30,7 @@ export default async function SettingsPage() {
         <p className="text-gray-600">Manage your profile and family</p>
       </div>
 
-      <SettingsContent />
+      <SettingsContent familyData={familyData} />
     </div>
   );
 }

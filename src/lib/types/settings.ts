@@ -11,7 +11,6 @@ export interface FamilyMember {
 }
 
 export interface FamilyInvitation {
-  created_at: string;
   email: string;
   expires_at: string;
   family_id: string;
@@ -41,7 +40,6 @@ export interface FamilyMemberRow {
 }
 
 export interface FamilyInvitationRow {
-  created_at: string;
   email: string;
   expires_at: string;
   family_id: string;

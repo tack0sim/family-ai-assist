@@ -25,14 +25,12 @@ interface MembersSectionProps {
   currentUserRole: "admin" | "member" | null;
   familyId: string;
   members: FamilyMember[];
-  onMembersUpdate: () => Promise<void>;
 }
 
 export function MembersSection({
   members,
   currentUserRole,
   familyId,
-  onMembersUpdate,
 }: MembersSectionProps) {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -74,7 +72,6 @@ export function MembersSection({
 
     try {
       await removeMember(familyId, memberId);
-      await onMembersUpdate();
       setConfirmDialog({ ...confirmDialog, open: false });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to remove member");
@@ -92,7 +89,7 @@ export function MembersSection({
 
     try {
       await updateMemberRole(familyId, memberId, newRole);
-      await onMembersUpdate();
+
       setConfirmDialog({ ...confirmDialog, open: false });
     } catch (err) {
       setError(

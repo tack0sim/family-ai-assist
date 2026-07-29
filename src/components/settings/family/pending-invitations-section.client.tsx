@@ -23,7 +23,6 @@ import type { FamilyInvitation } from "@/lib/types/settings";
 interface PendingInvitationsSectionProps {
   familyId: string;
   invitations: FamilyInvitation[];
-  onInvitationsUpdate: () => Promise<void>;
 }
 
 interface ConfirmDialogState {
@@ -36,7 +35,6 @@ interface ConfirmDialogState {
 export function PendingInvitationsSection({
   invitations,
   familyId,
-  onInvitationsUpdate,
 }: PendingInvitationsSectionProps) {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>({
@@ -62,7 +60,6 @@ export function PendingInvitationsSection({
 
     try {
       await resendInvitation(familyId, invitationId);
-      await onInvitationsUpdate();
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to resend invitation"
@@ -78,7 +75,6 @@ export function PendingInvitationsSection({
 
     try {
       await revokeInvitation(familyId, invitationId);
-      await onInvitationsUpdate();
       setConfirmDialog({ ...confirmDialog, open: false });
     } catch (err) {
       setError(
@@ -123,9 +119,6 @@ export function PendingInvitationsSection({
                 <div className="min-w-0 flex-1">
                   <p className="font-medium text-gray-900">
                     {invitation.email}
-                  </p>
-                  <p className="text-gray-500 text-sm">
-                    Sent {formatDate(invitation.created_at)}
                   </p>
                   <p className="text-gray-400 text-xs">
                     Expires {formatDate(invitation.expires_at)}

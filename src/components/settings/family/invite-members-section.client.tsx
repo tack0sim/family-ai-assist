@@ -18,13 +18,9 @@ import { inviteMembersSchema } from "@/lib/schemas/onboarding";
 
 interface InviteMembersSectionProps {
   familyId: string;
-  onInvitationsUpdate: () => Promise<void>;
 }
 
-export function InviteMembersSection({
-  familyId,
-  onInvitationsUpdate,
-}: InviteMembersSectionProps) {
+export function InviteMembersSection({ familyId }: InviteMembersSectionProps) {
   const [emails, setEmails] = useState<string[]>([""]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -76,9 +72,6 @@ export function InviteMembersSection({
       setSuccessMessage(
         `Invited ${validation.data.emails.length} member${validation.data.emails.length > 1 ? "s" : ""}!`
       );
-
-      // Update invitations list
-      await onInvitationsUpdate();
 
       // Clear success message after 3 seconds
       setTimeout(() => {

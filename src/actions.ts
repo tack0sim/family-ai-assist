@@ -766,7 +766,7 @@ export async function getFamilyData(): Promise<FamilyData> {
       .from("invitations")
       .select("*")
       .eq("family_id", familyId)
-      .order("created_at", { ascending: false });
+      .order("expires_at");
 
     if (invError) {
       console.error("Error fetching invitations:", invError);

@@ -2,6 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import type { FamilyData } from "@/lib/types/settings";
 import { FamilyTab } from "./family-tab.client";
 import { ProfileTab } from "./profile-tab.client";
 
@@ -12,9 +13,10 @@ const TABS = [
 
 type TabId = (typeof TABS)[number]["id"];
 
-export function SettingsContent() {
+export function SettingsContent({ familyData }: { familyData: FamilyData }) {
   const searchParams = useSearchParams();
   const currentTab = (searchParams.get("tab") || "profile") as TabId;
+  const { familyId, members, invitations, userRole } = familyData;
 
   const isValidTab = TABS.some((tab) => tab.id === currentTab);
   const activeTab = isValidTab ? currentTab : "profile";
@@ -48,7 +50,14 @@ export function SettingsContent() {
       {/* Tab Content */}
       <div>
         {activeTab === "profile" && <ProfileTab />}
-        {activeTab === "family" && <FamilyTab />}
+        {activeTab === "family" && (
+          <FamilyTab
+            familyId={familyId}
+            invitations={invitations}
+            members={members}
+            userRole={userRole}
+          />
+        )}
       </div>
     </div>
   );
