@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   getFamilyMembers,
   getPendingInvitations,
+  getUserFamilyMembership,
   validateAdminAccess,
 } from "./family";
 import * as serverModule from "./server";
@@ -301,6 +302,86 @@ describe("getPendingInvitations", () => {
   it("should throw error when family ID is empty", async () => {
     await expect(getPendingInvitations("")).rejects.toThrow(
       "Family ID is required"
+    );
+  });
+});
+
+describe("getUserFamilyMembership", () => {
+  const mockUserId = "user-123";
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const createUserMembershipResponse = (data: any, error: any = null) => ({
+    from: vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          maybeSingle: vi.fn().mockResolvedValue({
+            data,
+            error,
+          }),
+        }),
+      }),
+    }),
+  });
+
+  it("should return user family membership with familyId, role and status", async () => {
+    const mockClient = createUserMembershipResponse({
+      family_id: "family-456",
+      role: "admin",
+      status: "active",
+    });
+
+    vi.mocked(serverModule.createClient).mockResolvedValue(mockClient as any);
+
+    const result = await getUserFamilyMembership(mockUserId);
+
+    expect(result).toEqual({
+      familyId: "family-456",
+      role: "admin",
+      status: "active",
+    });
+  });
+
+  it("should return member role when user is a regular member", async () => {
+    const mockClient = createUserMembershipResponse({
+      family_id: "family-789",
+      role: "member",
+      status: "active",
+    });
+
+    vi.mocked(serverModule.createClient).mockResolvedValue(mockClient as any);
+
+    const result = await getUserFamilyMembership(mockUserId);
+
+    expect(result).toEqual({
+      familyId: "family-789",
+      role: "member",
+      status: "active",
+    });
+  });
+
+  it("should throw error when user not in any family", async () => {
+    const mockClient = createUserMembershipResponse(null);
+    vi.mocked(serverModule.createClient).mockResolvedValue(mockClient as any);
+
+    await expect(getUserFamilyMembership(mockUserId)).rejects.toThrow(
+      "User not in any family"
+    );
+  });
+
+  it("should throw error when database query fails", async () => {
+    const mockError = new Error("Database connection failed");
+    const mockClient = createUserMembershipResponse(null, mockError);
+    vi.mocked(serverModule.createClient).mockResolvedValue(mockClient as any);
+
+    await expect(getUserFamilyMembership(mockUserId)).rejects.toThrow();
+  });
+
+  it("should throw error when user ID is empty", async () => {
+    await expect(getUserFamilyMembership("")).rejects.toThrow(
+      "User ID is required"
     );
   });
 });

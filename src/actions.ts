@@ -4,7 +4,11 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { sendInvitationEmails } from "@/lib/email/send-invitation";
 import { checkUserFamilyContext } from "@/lib/supabase/check-family";
-import { getFamilyMembers, getPendingInvitations } from "@/lib/supabase/family";
+import {
+  getFamilyMembers,
+  getPendingInvitations,
+  getUserFamilyMembership,
+} from "@/lib/supabase/family";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 import type {
@@ -709,19 +713,8 @@ export async function getFamilyData(): Promise<FamilyData> {
     throw new Error("Not authenticated");
   }
 
-  // Get current user's family and role
-  const { data: currentMember, error: memberError } = await supabase
-    .from("family_members")
-    .select("family_id, role")
-    .eq("user_id", userId)
-    .single();
-
-  if (memberError || !currentMember) {
-    throw new Error("User not in any family");
-  }
-
-  const familyId = currentMember.family_id;
-  const userRole = currentMember.role as "admin" | "member";
+  // Get current user's family membership
+  const { familyId, role: userRole } = await getUserFamilyMembership(userId);
 
   // Fetch family members using extracted utility
   const members = await getFamilyMembers(familyId);

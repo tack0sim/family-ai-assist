@@ -13,6 +13,12 @@ export interface AdminAccessResult {
   role?: string;
 }
 
+export interface UserFamilyMembership {
+  familyId: string;
+  role: "admin" | "member";
+  status: string;
+}
+
 /**
  * Validates if a user is an active admin member of a specific family.
  * Queries the family_members table to check both role and status.
@@ -64,6 +70,45 @@ export async function validateAdminAccess(
     role: data.role,
   };
 }
+
+/**
+ * Fetch the current user's family membership information.
+ * Uses request-level caching to avoid repeated queries within the same request.
+ *
+ * @param userId - The UUID of the user
+ * @returns Promise<UserFamilyMembership> User's family ID, role, and membership status
+ * @throws Error if user is not in any family or if database query fails
+ */
+export const getUserFamilyMembership = cache(
+  async (userId: string): Promise<UserFamilyMembership> => {
+    if (!userId?.trim()) {
+      throw new Error("User ID is required");
+    }
+
+    const supabase = await createClient();
+
+    const { data, error } = await supabase
+      .from("family_members")
+      .select("family_id, role, status")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (error) {
+      console.error("Error fetching user family membership:", error);
+      throw error;
+    }
+
+    if (!data) {
+      throw new Error("User not in any family");
+    }
+
+    return {
+      familyId: data.family_id,
+      role: data.role as "admin" | "member",
+      status: data.status,
+    };
+  }
+);
 
 /**
  * Fetch all family members for a given family ID.
