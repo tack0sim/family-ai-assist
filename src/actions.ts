@@ -4,13 +4,13 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { sendInvitationEmails } from "@/lib/email/send-invitation";
 import { checkUserFamilyContext } from "@/lib/supabase/check-family";
+import { getFamilyMembers, getPendingInvitations } from "@/lib/supabase/family";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 import type {
   FamilyData,
   FamilyInvitation,
   FamilyMember,
-  FamilyMemberRow,
 } from "@/lib/types/settings";
 import { getBaseURL } from "@/lib/utils/get-base-url";
 import { validatePasswordComplexity } from "@/lib/utils/validate-password";
@@ -723,56 +723,13 @@ export async function getFamilyData(): Promise<FamilyData> {
   const familyId = currentMember.family_id;
   const userRole = currentMember.role as "admin" | "member";
 
-  // Fetch all family members
-  const { data: membersData, error: membersError } = await supabase
-    .from("family_members")
-    .select(
-      `
-        id,
-        user_id,
-        family_id,
-        role,
-        status,
-        joined_at,
-        profiles(display_name)
-      `
-    )
-    .eq("family_id", familyId)
-    .order("joined_at", { ascending: true });
+  // Fetch family members using extracted utility
+  const members = await getFamilyMembers(familyId);
 
-  if (membersError) {
-    console.error("Error fetching members:", membersError);
-    throw new Error("Failed to fetch family members");
-  }
-
-  // Map the raw Supabase data to our FamilyMember type
-  // Note: Email lookup would require a separate query or RLS changes
-  const members: FamilyMember[] = (
-    (membersData || []) as unknown as FamilyMemberRow[]
-  ).map((member) => ({
-    id: member.id,
-    user_id: member.user_id,
-    family_id: member.family_id,
-    role: member.role,
-    status: member.status,
-    joined_at: member.joined_at,
-    display_name: member.profiles?.display_name || undefined,
-    email: undefined, // Email retrieval would require separate logic or schema change
-  }));
-
+  // Fetch invitations if user is admin
   let invitations: FamilyInvitation[] = [];
   if (userRole === "admin") {
-    const { data: invData, error: invError } = await supabase
-      .from("invitations")
-      .select("*")
-      .eq("family_id", familyId)
-      .order("expires_at");
-
-    if (invError) {
-      console.error("Error fetching invitations:", invError);
-    } else {
-      invitations = (invData || []) as FamilyInvitation[];
-    }
+    invitations = await getPendingInvitations(familyId);
   }
 
   return {

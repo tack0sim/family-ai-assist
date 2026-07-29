@@ -1,6 +1,12 @@
 "use server";
 
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import type {
+  FamilyInvitation,
+  FamilyMember,
+  FamilyMemberRow,
+} from "@/lib/types/settings";
 
 export interface AdminAccessResult {
   isAdmin: boolean;
@@ -58,3 +64,90 @@ export async function validateAdminAccess(
     role: data.role,
   };
 }
+
+/**
+ * Fetch all family members for a given family ID.
+ * Uses request-level caching to avoid repeated queries within the same request.
+ *
+ * @param familyId - The UUID of the family
+ * @returns Promise<FamilyMember[]> Array of family members with their profile information
+ * @throws Error if database query fails
+ */
+export const getFamilyMembers = cache(
+  async (familyId: string): Promise<FamilyMember[]> => {
+    if (!familyId?.trim()) {
+      throw new Error("Family ID is required");
+    }
+
+    const supabase = await createClient();
+
+    // Fetch all family members with their profile info
+    const { data: membersData, error: membersError } = await supabase
+      .from("family_members")
+      .select(
+        `
+        id,
+        user_id,
+        family_id,
+        role,
+        status,
+        joined_at,
+        profiles(display_name)
+      `
+      )
+      .eq("family_id", familyId)
+      .order("joined_at", { ascending: true });
+
+    if (membersError) {
+      console.error("Error fetching members:", membersError);
+      throw new Error("Failed to fetch family members");
+    }
+
+    // Map the raw Supabase data to our FamilyMember type
+    const members: FamilyMember[] = (
+      (membersData || []) as unknown as FamilyMemberRow[]
+    ).map((member) => ({
+      id: member.id,
+      user_id: member.user_id,
+      family_id: member.family_id,
+      role: member.role,
+      status: member.status,
+      joined_at: member.joined_at,
+      display_name: member.profiles?.display_name || undefined,
+      email: undefined, // Email retrieval would require separate logic or schema change
+    }));
+
+    return members;
+  }
+);
+
+/**
+ * Fetch pending invitations for a given family ID.
+ * Uses request-level caching to avoid repeated queries within the same request.
+ *
+ * @param familyId - The UUID of the family
+ * @returns Promise<FamilyInvitation[]> Array of pending family invitations
+ * @throws Error if database query fails
+ */
+export const getPendingInvitations = cache(
+  async (familyId: string): Promise<FamilyInvitation[]> => {
+    if (!familyId?.trim()) {
+      throw new Error("Family ID is required");
+    }
+
+    const supabase = await createClient();
+
+    const { data: invData, error: invError } = await supabase
+      .from("invitations")
+      .select("*")
+      .eq("family_id", familyId)
+      .order("expires_at");
+
+    if (invError) {
+      console.error("Error fetching invitations:", invError);
+      throw new Error("Failed to fetch pending invitations");
+    }
+
+    return (invData || []) as FamilyInvitation[];
+  }
+);

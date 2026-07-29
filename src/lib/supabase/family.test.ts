@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { validateAdminAccess } from "./family";
+import {
+  getFamilyMembers,
+  getPendingInvitations,
+  validateAdminAccess,
+} from "./family";
 import * as serverModule from "./server";
 
 // Mock the server module
@@ -116,6 +120,187 @@ describe("validateAdminAccess", () => {
 
     await expect(validateAdminAccess(mockUserId, "")).rejects.toThrow(
       "User ID and Family ID are required"
+    );
+  });
+});
+
+describe("getFamilyMembers", () => {
+  const mockFamilyId = "family-456";
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const createMembersResponse = (membersData: any, error: any = null) => ({
+    from: vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          order: vi.fn().mockResolvedValue({
+            data: membersData,
+            error,
+          }),
+        }),
+      }),
+    }),
+  });
+
+  it("should fetch and return family members", async () => {
+    const mockMembers = [
+      {
+        id: "member-1",
+        user_id: "user-1",
+        family_id: mockFamilyId,
+        role: "admin",
+        status: "active",
+        joined_at: "2024-01-01T00:00:00Z",
+        profiles: { display_name: "Admin User" },
+      },
+      {
+        id: "member-2",
+        user_id: "user-2",
+        family_id: mockFamilyId,
+        role: "member",
+        status: "active",
+        joined_at: "2024-01-02T00:00:00Z",
+        profiles: { display_name: "Regular Member" },
+      },
+    ];
+
+    const mockClient = createMembersResponse(mockMembers);
+    vi.mocked(serverModule.createClient).mockResolvedValue(mockClient as any);
+
+    const result = await getFamilyMembers(mockFamilyId);
+
+    expect(result).toHaveLength(2);
+    expect(result[0]).toEqual({
+      id: "member-1",
+      user_id: "user-1",
+      family_id: mockFamilyId,
+      role: "admin",
+      status: "active",
+      joined_at: "2024-01-01T00:00:00Z",
+      display_name: "Admin User",
+      email: undefined,
+    });
+  });
+
+  it("should handle members without profile display_name", async () => {
+    const mockMembers = [
+      {
+        id: "member-1",
+        user_id: "user-1",
+        family_id: mockFamilyId,
+        role: "member",
+        status: "active",
+        joined_at: "2024-01-01T00:00:00Z",
+        profiles: null,
+      },
+    ];
+
+    const mockClient = createMembersResponse(mockMembers);
+    vi.mocked(serverModule.createClient).mockResolvedValue(mockClient as any);
+
+    const result = await getFamilyMembers(mockFamilyId);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].display_name).toBeUndefined();
+  });
+
+  it("should return empty array when no members found", async () => {
+    const mockClient = createMembersResponse([]);
+    vi.mocked(serverModule.createClient).mockResolvedValue(mockClient as any);
+
+    const result = await getFamilyMembers(mockFamilyId);
+
+    expect(result).toEqual([]);
+  });
+
+  it("should throw error when database query fails", async () => {
+    const mockError = new Error("Database connection failed");
+    const mockClient = createMembersResponse(null, mockError);
+    vi.mocked(serverModule.createClient).mockResolvedValue(mockClient as any);
+
+    await expect(getFamilyMembers(mockFamilyId)).rejects.toThrow(
+      "Failed to fetch family members"
+    );
+  });
+
+  it("should throw error when family ID is empty", async () => {
+    await expect(getFamilyMembers("")).rejects.toThrow("Family ID is required");
+  });
+});
+
+describe("getPendingInvitations", () => {
+  const mockFamilyId = "family-456";
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const createInvitationsResponse = (invData: any, error: any = null) => ({
+    from: vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          order: vi.fn().mockResolvedValue({
+            data: invData,
+            error,
+          }),
+        }),
+      }),
+    }),
+  });
+
+  it("should fetch and return pending invitations", async () => {
+    const mockInvitations = [
+      {
+        id: "inv-1",
+        family_id: mockFamilyId,
+        email: "newmember@example.com",
+        token: "token-123",
+        status: "pending",
+        expires_at: "2024-12-31T23:59:59Z",
+      },
+      {
+        id: "inv-2",
+        family_id: mockFamilyId,
+        email: "anothermember@example.com",
+        token: "token-456",
+        status: "pending",
+        expires_at: "2024-12-30T23:59:59Z",
+      },
+    ];
+
+    const mockClient = createInvitationsResponse(mockInvitations);
+    vi.mocked(serverModule.createClient).mockResolvedValue(mockClient as any);
+
+    const result = await getPendingInvitations(mockFamilyId);
+
+    expect(result).toHaveLength(2);
+    expect(result[0]).toEqual(mockInvitations[0]);
+  });
+
+  it("should return empty array when no invitations found", async () => {
+    const mockClient = createInvitationsResponse([]);
+    vi.mocked(serverModule.createClient).mockResolvedValue(mockClient as any);
+
+    const result = await getPendingInvitations(mockFamilyId);
+
+    expect(result).toEqual([]);
+  });
+
+  it("should throw error when database query fails", async () => {
+    const mockError = new Error("Database connection failed");
+    const mockClient = createInvitationsResponse(null, mockError);
+    vi.mocked(serverModule.createClient).mockResolvedValue(mockClient as any);
+
+    await expect(getPendingInvitations(mockFamilyId)).rejects.toThrow(
+      "Failed to fetch pending invitations"
+    );
+  });
+
+  it("should throw error when family ID is empty", async () => {
+    await expect(getPendingInvitations("")).rejects.toThrow(
+      "Family ID is required"
     );
   });
 });
