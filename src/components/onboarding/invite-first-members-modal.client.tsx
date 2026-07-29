@@ -1,7 +1,7 @@
 "use client";
 
 import { Plus, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { inviteMembers } from "@/actions";
 import { Button } from "@/components/ui/button";
 import {
@@ -76,10 +76,6 @@ export function InviteFirstMembersModal({
     try {
       await inviteMembers(familyId, validation.data.emails);
       setShowSuccess(true);
-      // Give user time to see the success message before redirecting
-      setTimeout(() => {
-        onSuccess();
-      }, 2000);
     } catch (err) {
       setLoading(false);
       if (err instanceof Error) {
@@ -89,6 +85,15 @@ export function InviteFirstMembersModal({
       }
     }
   };
+
+  useEffect(() => {
+    if (showSuccess) {
+      const timeoutId = setTimeout(() => {
+        onSuccess();
+      }, 2000);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [showSuccess, onSuccess]);
 
   return (
     <Dialog
