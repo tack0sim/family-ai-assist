@@ -4,6 +4,7 @@ export interface FamilyMember {
   email?: string;
   family_id: string;
   id: string;
+  is_child: boolean;
   joined_at: string;
   role: "admin" | "member";
   status: "active" | "invited";
@@ -33,6 +34,7 @@ export interface FamilyMemberRow {
   joined_at: string;
   profiles: {
     display_name: string | null;
+    is_child: boolean;
   } | null;
   role: "admin" | "member";
   status: "active" | "invited";

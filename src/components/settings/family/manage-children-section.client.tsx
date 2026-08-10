@@ -40,9 +40,9 @@ export function ManageChildrenSection({
   familyId,
   members,
 }: ManageChildrenSectionProps) {
-  // Child profiles are members without email addresses
+  // Child profiles are members who are marked as children
   const childProfiles = members.filter(
-    (m) => m.status === "active" && !m.email
+    (m) => m.status === "active" && m.is_child
   );
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
