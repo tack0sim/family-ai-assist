@@ -2453,13 +2453,17 @@ describe("Family Management - createChildProfile", () => {
     });
 
     // Verify auth user was created with child metadata
-    expect(mockServiceClient.auth.admin.createUser).toHaveBeenCalledWith({
-      email_confirm: true,
-      user_metadata: {
-        display_name: childDisplayName,
-        is_child: true,
-        parent_id: userId,
-      },
+    const createUserCall =
+      mockServiceClient.auth.admin.createUser.mock.calls[0]?.[0];
+    expect(createUserCall).toBeDefined();
+    expect(createUserCall?.email_confirm).toBe(true);
+    expect(createUserCall?.email).toMatch(
+      /^child-[0-9a-f-]+@family-assist\.local$/
+    );
+    expect(createUserCall?.user_metadata).toEqual({
+      display_name: childDisplayName,
+      is_child: true,
+      parent_id: userId,
     });
 
     // Verify profile creation was ensured
@@ -2670,14 +2674,18 @@ describe("Family Management - createChildProfile", () => {
     });
 
     // Verify auth user was created with date_of_birth in metadata
-    expect(mockServiceClient.auth.admin.createUser).toHaveBeenCalledWith({
-      email_confirm: true,
-      user_metadata: {
-        display_name: childDisplayName,
-        is_child: true,
-        parent_id: userId,
-        date_of_birth: dateOfBirth,
-      },
+    const createUserCall2 =
+      mockServiceClient.auth.admin.createUser.mock.calls[0]?.[0];
+    expect(createUserCall2).toBeDefined();
+    expect(createUserCall2?.email_confirm).toBe(true);
+    expect(createUserCall2?.email).toMatch(
+      /^child-[0-9a-f-]+@family-assist\.local$/
+    );
+    expect(createUserCall2?.user_metadata).toEqual({
+      display_name: childDisplayName,
+      is_child: true,
+      parent_id: userId,
+      date_of_birth: dateOfBirth,
     });
   });
 

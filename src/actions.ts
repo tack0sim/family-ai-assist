@@ -781,8 +781,13 @@ export async function createChildProfile(
   // Use service role client for privileged operations
   const svc = createServiceRoleClient();
 
+  // Generate synthetic email for child account (required by Supabase)
+  // Uses .local TLD to indicate internal/non-routable address
+  const childEmail = `child-${crypto.randomUUID()}@family-assist.local`;
+
   // Create email-less auth user with child metadata
   const { data: authData, error: authError } = await svc.auth.admin.createUser({
+    email: childEmail,
     email_confirm: true,
     user_metadata: {
       display_name: displayName.trim(),
