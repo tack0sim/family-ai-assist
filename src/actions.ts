@@ -3,11 +3,13 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { sendInvitationEmails } from "@/lib/email/send-invitation";
+import { createChildProfileSchema } from "@/lib/schemas/settings";
 import { checkUserFamilyContext } from "@/lib/supabase/check-family";
 import {
   getFamilyMembers,
   getPendingInvitations,
   getUserFamilyMembership,
+  validateAdminAccess,
 } from "@/lib/supabase/family";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service";
@@ -726,5 +728,107 @@ export async function getFamilyData(): Promise<FamilyData> {
     userRole,
     members,
     invitations,
+  };
+}
+
+/**
+ * Create a child profile (email-less account) for a minor in the family.
+ * Only family admins can create child profiles.
+ *
+ * @param familyId - The UUID of the family to add the child to
+ * @param displayName - The child's name (required, 2-100 characters)
+ * @param dateOfBirth - Optional date of birth for age tracking
+ * @returns Object with { id (auth user id), profile_id (same as id), display_name, created_at }
+ * @throws Error if user is not admin, invalid input, or auth service fails
+ */
+export async function createChildProfile(
+  familyId: string,
+  displayName: string,
+  dateOfBirth?: string
+): Promise<{
+  id: string;
+  profile_id: string;
+  display_name: string;
+  created_at: string;
+}> {
+  // Validate inputs
+  const validationResult = createChildProfileSchema.safeParse({
+    familyId,
+    displayName,
+    dateOfBirth,
+  });
+
+  if (!validationResult.success) {
+    throw new Error(
+      validationResult.error.issues[0]?.message || "Invalid input"
+    );
+  }
+
+  // Get current user and verify authentication
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  const userId = userData?.user?.id;
+
+  if (!userId) {
+    throw new Error("Not authenticated");
+  }
+
+  // Verify user is admin of this family
+  const { isAdmin } = await validateAdminAccess(userId, familyId);
+  if (!isAdmin) {
+    throw new Error("Only admins can create child profiles");
+  }
+
+  // Use service role client for privileged operations
+  const svc = createServiceRoleClient();
+
+  // Create email-less auth user with child metadata
+  const { data: authData, error: authError } = await svc.auth.admin.createUser({
+    email_confirm: true,
+    user_metadata: {
+      display_name: displayName.trim(),
+      is_child: true,
+      parent_id: userId,
+      ...(dateOfBirth && { date_of_birth: dateOfBirth }),
+    },
+  });
+
+  if (authError || !authData.user) {
+    console.error("Auth creation error:", authError);
+    throw new Error(authError?.message || "Failed to create child account");
+  }
+
+  const childUserId = authData.user.id;
+  const createdAt = authData.user.created_at;
+
+  // Ensure profile is created via trigger, with fallback
+  const { error: ensureProfileErr } = await svc.rpc("ensure_profile_exists", {
+    p_user_id: childUserId,
+  });
+
+  if (ensureProfileErr) {
+    console.error("Profile creation error:", ensureProfileErr);
+    throw new Error("Failed to create child profile. Please try again.");
+  }
+
+  // Add child as member to family with role='member'
+  const { error: memberErr } = await svc.from("family_members").insert({
+    family_id: familyId,
+    user_id: childUserId,
+    role: "member",
+    status: "active",
+    joined_at: new Date().toISOString(),
+  });
+
+  if (memberErr) {
+    console.error("Family member creation error:", memberErr);
+    throw new Error(memberErr.message || "Failed to add child to family");
+  }
+
+  return {
+    id: childUserId,
+    profile_id: childUserId,
+    display_name: displayName.trim(),
+    created_at: createdAt,
   };
 }

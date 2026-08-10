@@ -2354,3 +2354,408 @@ describe("Auth - Family Context Checks", () => {
     });
   });
 });
+
+describe("Family Management - createChildProfile", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("should create a child profile when user is admin", async () => {
+    // Arrange
+    const { createClient } = await import("@/lib/supabase/server");
+    const { createServiceRoleClient } = await import("@/lib/supabase/service");
+
+    const familyId = "123e4567-e89b-12d3-a456-426614174000";
+    const userId = "123e4567-e89b-12d3-a456-426614174001";
+    const childUserId = "123e4567-e89b-12d3-a456-426614174002";
+    const childDisplayName = "Little Johnny";
+
+    const mockSupabaseClient = {
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: {
+            user: {
+              id: userId,
+              email: "admin@example.com",
+            },
+          },
+        }),
+      },
+      from: vi.fn((table: string) => {
+        if (table === "family_members") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  maybeSingle: vi.fn().mockResolvedValue({
+                    data: { role: "admin", status: "active" },
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+            insert: vi.fn().mockResolvedValue({ error: null }),
+          };
+        }
+        return {};
+      }),
+    };
+
+    const mockServiceClient = {
+      auth: {
+        admin: {
+          createUser: vi.fn().mockResolvedValue({
+            data: {
+              user: {
+                id: childUserId,
+                created_at: "2026-08-10T12:00:00Z",
+              },
+            },
+            error: null,
+          }),
+        },
+      },
+      rpc: vi.fn().mockResolvedValue({ error: null }),
+      from: vi.fn((table: string) => {
+        if (table === "family_members") {
+          return {
+            insert: vi.fn().mockResolvedValue({ error: null }),
+          };
+        }
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({
+              data: [{ role: "admin" }],
+              error: null,
+            }),
+            single: vi.fn().mockResolvedValue({
+              data: { role: "admin" },
+              error: null,
+            }),
+          }),
+        };
+      }),
+    };
+
+    vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
+    vi.mocked(createServiceRoleClient).mockReturnValue(mockServiceClient);
+
+    // Act
+    const { createChildProfile } = await import("./actions");
+    const result = await createChildProfile(familyId, childDisplayName);
+
+    // Assert
+    expect(result).toEqual({
+      id: childUserId,
+      profile_id: childUserId,
+      display_name: childDisplayName,
+      created_at: "2026-08-10T12:00:00Z",
+    });
+
+    // Verify auth user was created with child metadata
+    expect(mockServiceClient.auth.admin.createUser).toHaveBeenCalledWith({
+      email_confirm: true,
+      user_metadata: {
+        display_name: childDisplayName,
+        is_child: true,
+        parent_id: userId,
+      },
+    });
+
+    // Verify profile creation was ensured
+    expect(mockServiceClient.rpc).toHaveBeenCalledWith(
+      "ensure_profile_exists",
+      {
+        p_user_id: childUserId,
+      }
+    );
+
+    // Verify family member was added
+    expect(mockServiceClient.from).toHaveBeenCalledWith("family_members");
+  });
+
+  it("should throw error when user is not admin", async () => {
+    // Arrange
+    const { createClient } = await import("@/lib/supabase/server");
+    const { createServiceRoleClient } = await import("@/lib/supabase/service");
+
+    const familyId = "123e4567-e89b-12d3-a456-426614174000";
+    const userId = "123e4567-e89b-12d3-a456-426614174003";
+    const childDisplayName = "Little Johnny";
+
+    const mockSupabaseClient = {
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: {
+            user: {
+              id: userId,
+              email: "member@example.com",
+            },
+          },
+        }),
+      },
+      from: vi.fn((table: string) => {
+        if (table === "family_members") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  maybeSingle: vi.fn().mockResolvedValue({
+                    data: { role: "member", status: "active" },
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+          };
+        }
+        return {};
+      }),
+    };
+
+    const mockServiceClient = {
+      from: vi.fn((table: string) => {
+        if (table === "family_members") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: { role: "member" },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        return {};
+      }),
+    };
+
+    vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
+    vi.mocked(createServiceRoleClient).mockReturnValue(mockServiceClient);
+
+    // Act & Assert
+    const { createChildProfile } = await import("./actions");
+    await expect(
+      createChildProfile(familyId, childDisplayName)
+    ).rejects.toThrow("Only admins can create child profiles");
+  });
+
+  it("should throw error when not authenticated", async () => {
+    // Arrange
+    const { createClient } = await import("@/lib/supabase/server");
+
+    const mockSupabaseClient = {
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: {
+            user: null,
+          },
+        }),
+      },
+    };
+
+    vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
+
+    // Act & Assert
+    const { createChildProfile } = await import("./actions");
+    await expect(
+      createChildProfile("123e4567-e89b-12d3-a456-426614174000", "Child Name")
+    ).rejects.toThrow("Not authenticated");
+  });
+
+  it("should throw error when display name is too short", async () => {
+    // Arrange & Act & Assert
+    const { createChildProfile } = await import("./actions");
+    await expect(
+      createChildProfile("123e4567-e89b-12d3-a456-426614174000", "A")
+    ).rejects.toThrow("Display name must be at least 2 characters");
+  });
+
+  it("should throw error when family ID is not a valid UUID", async () => {
+    // Arrange & Act & Assert
+    const { createChildProfile } = await import("./actions");
+    await expect(
+      createChildProfile("invalid-id", "Child Name")
+    ).rejects.toThrow("Family ID must be a valid UUID");
+  });
+
+  it("should include date_of_birth in metadata when provided", async () => {
+    // Arrange
+    const { createClient } = await import("@/lib/supabase/server");
+    const { createServiceRoleClient } = await import("@/lib/supabase/service");
+
+    const familyId = "123e4567-e89b-12d3-a456-426614174000";
+    const userId = "123e4567-e89b-12d3-a456-426614174001";
+    const childUserId = "123e4567-e89b-12d3-a456-426614174002";
+    const childDisplayName = "Little Johnny";
+    const dateOfBirth = "2020-01-15";
+
+    const mockSupabaseClient = {
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: {
+            user: {
+              id: userId,
+              email: "admin@example.com",
+            },
+          },
+        }),
+      },
+      from: vi.fn((table: string) => {
+        if (table === "family_members") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  maybeSingle: vi.fn().mockResolvedValue({
+                    data: { role: "admin", status: "active" },
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+            insert: vi.fn().mockResolvedValue({ error: null }),
+          };
+        }
+        return {};
+      }),
+    };
+
+    const mockServiceClient = {
+      auth: {
+        admin: {
+          createUser: vi.fn().mockResolvedValue({
+            data: {
+              user: {
+                id: childUserId,
+                created_at: "2026-08-10T12:00:00Z",
+              },
+            },
+            error: null,
+          }),
+        },
+      },
+      rpc: vi.fn().mockResolvedValue({ error: null }),
+      from: vi.fn((table: string) => {
+        if (table === "family_members") {
+          return {
+            insert: vi.fn().mockResolvedValue({ error: null }),
+          };
+        }
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({
+              data: [{ role: "admin" }],
+              error: null,
+            }),
+            single: vi.fn().mockResolvedValue({
+              data: { role: "admin" },
+              error: null,
+            }),
+          }),
+        };
+      }),
+    };
+
+    vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
+    vi.mocked(createServiceRoleClient).mockReturnValue(mockServiceClient);
+
+    // Act
+    const { createChildProfile } = await import("./actions");
+    const result = await createChildProfile(
+      familyId,
+      childDisplayName,
+      dateOfBirth
+    );
+
+    // Assert
+    expect(result).toEqual({
+      id: childUserId,
+      profile_id: childUserId,
+      display_name: childDisplayName,
+      created_at: "2026-08-10T12:00:00Z",
+    });
+
+    // Verify auth user was created with date_of_birth in metadata
+    expect(mockServiceClient.auth.admin.createUser).toHaveBeenCalledWith({
+      email_confirm: true,
+      user_metadata: {
+        display_name: childDisplayName,
+        is_child: true,
+        parent_id: userId,
+        date_of_birth: dateOfBirth,
+      },
+    });
+  });
+
+  it("should throw error when auth service fails", async () => {
+    // Arrange
+    const { createClient } = await import("@/lib/supabase/server");
+    const { createServiceRoleClient } = await import("@/lib/supabase/service");
+
+    const familyId = "123e4567-e89b-12d3-a456-426614174000";
+    const userId = "123e4567-e89b-12d3-a456-426614174001";
+    const childDisplayName = "Little Johnny";
+
+    const mockSupabaseClient = {
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: {
+            user: {
+              id: userId,
+              email: "admin@example.com",
+            },
+          },
+        }),
+      },
+      from: vi.fn((table: string) => {
+        if (table === "family_members") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  maybeSingle: vi.fn().mockResolvedValue({
+                    data: { role: "admin", status: "active" },
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+          };
+        }
+        return {};
+      }),
+    };
+
+    const mockServiceClient = {
+      auth: {
+        admin: {
+          createUser: vi.fn().mockResolvedValue({
+            data: { user: null },
+            error: { message: "Auth service temporarily unavailable" },
+          }),
+        },
+      },
+      from: vi.fn((table: string) => {
+        if (table === "family_members") {
+          return {
+            insert: vi.fn().mockResolvedValue({
+              error: null,
+            }),
+          };
+        }
+        return {};
+      }),
+    };
+
+    vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
+    vi.mocked(createServiceRoleClient).mockReturnValue(mockServiceClient);
+
+    // Act & Assert
+    const { createChildProfile } = await import("./actions");
+    await expect(
+      createChildProfile(familyId, childDisplayName)
+    ).rejects.toThrow("Auth service temporarily unavailable");
+  });
+});
