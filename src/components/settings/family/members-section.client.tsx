@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { removeMember, updateMemberRole } from "@/actions";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -130,6 +130,10 @@ export function MembersSection({
               >
                 <div className="flex flex-1 items-center gap-3">
                   <Avatar>
+                    <AvatarImage
+                      alt={member.display_name}
+                      src={member.avatar_url}
+                    />
                     <AvatarFallback>
                       {getInitials(member.display_name)}
                     </AvatarFallback>
@@ -138,9 +142,9 @@ export function MembersSection({
                     <p className="font-medium text-gray-900">
                       {member.display_name || "Unknown"}
                     </p>
-                    <p className="text-gray-500 text-sm">
+                    {/* <p className="text-gray-500 text-sm">
                       {member.email || "No email"}
-                    </p>
+                    </p> */}
                     <p className="text-gray-400 text-xs">
                       Joined {formatDate(member.joined_at)}
                     </p>

@@ -1,5 +1,6 @@
 // Types for Family and Settings data
 export interface FamilyMember {
+  avatar_url?: string;
   display_name?: string;
   email?: string;
   family_id: string;
@@ -35,6 +36,7 @@ export interface FamilyMemberRow {
   profiles: {
     display_name: string | null;
     is_child: boolean;
+    avatar_url: string | null;
   } | null;
   role: "admin" | "member";
   status: "active" | "invited";

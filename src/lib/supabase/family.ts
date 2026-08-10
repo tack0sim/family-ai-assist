@@ -137,7 +137,7 @@ export const getFamilyMembers = cache(
         role,
         status,
         joined_at,
-        profiles(display_name, is_child)
+        profiles(display_name, is_child, avatar_url)
       `
       )
       .eq("family_id", familyId)
@@ -161,6 +161,7 @@ export const getFamilyMembers = cache(
       display_name: member.profiles?.display_name || undefined,
       email: undefined,
       is_child: member.profiles?.is_child ?? false,
+      avatar_url: member.profiles?.avatar_url ?? undefined,
     }));
 
     return members;
