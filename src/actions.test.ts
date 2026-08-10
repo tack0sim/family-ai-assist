@@ -2572,14 +2572,6 @@ describe("Family Management - createChildProfile", () => {
     ).rejects.toThrow("Display name must be at least 2 characters");
   });
 
-  it("should throw error when family ID is not a valid UUID", async () => {
-    // Arrange & Act & Assert
-    const { createChildProfile } = await import("./actions");
-    await expect(
-      createChildProfile("invalid-id", "Child Name")
-    ).rejects.toThrow("Family ID must be a valid UUID");
-  });
-
   it("should include date_of_birth in metadata when provided", async () => {
     // Arrange
     const { createClient } = await import("@/lib/supabase/server");

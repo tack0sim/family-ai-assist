@@ -12,7 +12,6 @@ export const updateProfileSchema = z.object({
 export type UpdateProfileFormData = z.infer<typeof updateProfileSchema>;
 
 export const createChildProfileSchema = z.object({
-  familyId: z.string().uuid("Family ID must be a valid UUID"),
   displayName: z
     .string()
     .min(1, "Display name is required")

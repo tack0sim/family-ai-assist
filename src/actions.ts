@@ -751,9 +751,8 @@ export async function createChildProfile(
   display_name: string;
   created_at: string;
 }> {
-  // Validate inputs
+  // Validate user inputs (familyId is already known by the server)
   const validationResult = createChildProfileSchema.safeParse({
-    familyId,
     displayName,
     dateOfBirth,
   });

@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import type { FamilyInvitation, FamilyMember } from "@/lib/types/settings";
 import { InviteMembersSection } from "./family/invite-members-section.client";
+import { ManageChildrenSection } from "./family/manage-children-section.client";
 import { MembersSection } from "./family/members-section.client";
 import { PendingInvitationsSection } from "./family/pending-invitations-section.client";
 
@@ -66,6 +67,8 @@ export function FamilyTab({
 
       {userRole === "admin" && (
         <>
+          <ManageChildrenSection familyId={familyId} members={members} />
+
           <PendingInvitationsSection
             familyId={familyId}
             invitations={invitations}
