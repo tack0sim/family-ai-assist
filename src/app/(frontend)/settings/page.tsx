@@ -1,8 +1,15 @@
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 import { getFamilyData } from "@/actions";
 import { SettingsContent } from "@/components/settings/settings-content.client";
+import { Spinner } from "@/components/ui/spinner";
 import { checkUserFamilyContext } from "@/lib/supabase/check-family";
 import { createClient } from "@/lib/supabase/server";
+
+async function SettingsContentWrapper() {
+  const familyData = await getFamilyData();
+  return <SettingsContent familyData={familyData} />;
+}
 
 export default async function SettingsPage() {
   // Check if user is authenticated
@@ -21,16 +28,21 @@ export default async function SettingsPage() {
     redirect("/onboarding");
   }
 
-  const familyData = await getFamilyData();
-
   return (
     <div className="flex flex-col gap-6 px-4 py-8">
       <div>
         <h1 className="font-bold text-3xl tracking-tight">Settings</h1>
         <p className="text-gray-600">Manage your profile and family</p>
       </div>
-
-      <SettingsContent familyData={familyData} />
+      <Suspense
+        fallback={
+          <div className="flex justify-center">
+            <Spinner />
+          </div>
+        }
+      >
+        <SettingsContentWrapper />
+      </Suspense>
     </div>
   );
 }
