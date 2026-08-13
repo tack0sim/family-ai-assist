@@ -159,13 +159,13 @@ export function MembersSection({
                   {currentUserRole === "admin" && (
                     <div className="flex gap-2">
                       <Button
-                        disabled={actionLoading === member.id}
+                        disabled={actionLoading === member.user_id}
                         onClick={() =>
                           setConfirmDialog({
                             open: true,
                             type:
                               member.role === "admin" ? "demote" : "promote",
-                            memberId: member.id,
+                            memberId: member.user_id,
                             memberName: member.display_name || "this member",
                           })
                         }
@@ -175,12 +175,12 @@ export function MembersSection({
                         {member.role === "admin" ? "Demote" : "Promote"}
                       </Button>
                       <Button
-                        disabled={actionLoading === member.id}
+                        disabled={actionLoading === member.user_id}
                         onClick={() =>
                           setConfirmDialog({
                             open: true,
                             type: "remove",
-                            memberId: member.id,
+                            memberId: member.user_id,
                             memberName: member.display_name || "this member",
                           })
                         }
