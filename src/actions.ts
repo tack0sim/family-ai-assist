@@ -426,6 +426,8 @@ export async function inviteMembers(familyId: string, emails: string[]) {
     expiresAt: new Date(invitations[0]!.expires_at),
     baseUrl,
   });
+
+  revalidatePath("/settings");
 }
 
 /**
@@ -486,6 +488,8 @@ export async function updateMemberRole(
   if (updateErr) {
     throw new Error(updateErr.message || "Failed to update member role");
   }
+
+  revalidatePath("/settings");
 }
 
 /**
@@ -538,6 +542,8 @@ export async function removeMember(familyId: string, memberId: string) {
   if (deleteErr) {
     throw new Error(deleteErr.message || "Failed to remove member");
   }
+
+  revalidatePath("/settings");
 }
 
 /**
@@ -585,6 +591,8 @@ export async function revokeInvitation(familyId: string, invitationId: string) {
   if (deleteErr) {
     throw new Error(deleteErr.message || "Failed to revoke invitation");
   }
+
+  revalidatePath("/settings");
 }
 
 /**
@@ -832,6 +840,7 @@ export async function createChildProfile(
     console.error("Family member creation error:", memberErr);
     throw new Error(memberErr.message || "Failed to add child to family");
   }
+  revalidatePath("/settings");
 
   return {
     id: childUserId,
