@@ -2,18 +2,27 @@
 
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import type { EventTag } from "@/lib/schemas/settings";
 import type { FamilyData } from "@/lib/types/settings";
+import { EventsTab } from "./events-tab.client";
 import { FamilyTab } from "./family-tab.client";
 import { ProfileTab } from "./profile-tab.client";
 
 const TABS = [
   { id: "profile", label: "Profile" },
   { id: "family", label: "Family" },
+  { id: "events", label: "Events" },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
 
-export function SettingsContent({ familyData }: { familyData: FamilyData }) {
+export function SettingsContent({
+  familyData,
+  initialEventTags,
+}: {
+  familyData: FamilyData;
+  initialEventTags: EventTag[];
+}) {
   const searchParams = useSearchParams();
   const currentTab = (searchParams.get("tab") || "profile") as TabId;
   const { familyId, members, invitations, userRole } = familyData;
@@ -55,6 +64,13 @@ export function SettingsContent({ familyData }: { familyData: FamilyData }) {
             familyId={familyId}
             invitations={invitations}
             members={members}
+            userRole={userRole}
+          />
+        )}
+        {activeTab === "events" && (
+          <EventsTab
+            familyId={familyId}
+            initialEventTags={initialEventTags}
             userRole={userRole}
           />
         )}

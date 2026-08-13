@@ -1,9 +1,13 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { sendInvitationEmails } from "@/lib/email/send-invitation";
-import { createChildProfileSchema } from "@/lib/schemas/settings";
+import {
+  createChildProfileSchema,
+  eventTagSchema,
+} from "@/lib/schemas/settings";
 import { checkUserFamilyContext } from "@/lib/supabase/check-family";
 import {
   getFamilyMembers,
@@ -835,4 +839,192 @@ export async function createChildProfile(
     display_name: displayName.trim(),
     created_at: createdAt,
   };
+}
+
+// ====== EVENT TAG MANAGEMENT ======
+
+export async function createEventTag(
+  familyId: string,
+  name: string,
+  color?: string
+) {
+  const supabase = await createClient();
+
+  // Get current user
+  const { data: authData } = await supabase.auth.getUser();
+  const userId = authData?.user?.id;
+
+  if (!userId) {
+    throw new Error("Not authenticated");
+  }
+
+  // Validate admin access
+  const { isAdmin } = await validateAdminAccess(userId, familyId);
+  if (!isAdmin) {
+    throw new Error("Only family admins can create tags");
+  }
+
+  // Validate input
+  const validationResult = eventTagSchema.safeParse({ name, color });
+  if (!validationResult.success) {
+    throw new Error(
+      validationResult.error.issues[0]?.message || "Validation failed"
+    );
+  }
+  const validated = validationResult.data;
+
+  // Create tag
+  const { data, error } = await supabase
+    .from("event_tags_config")
+    .insert({
+      family_id: familyId,
+      name: validated.name,
+      color: validated.color || null,
+      created_by: userId,
+    })
+    .select()
+    .maybeSingle();
+
+  if (error) {
+    console.error("Error creating event tag:", error);
+    if (error.code === "23505") {
+      throw new Error("A tag with this name already exists in your family");
+    }
+    throw new Error(error.message || "Failed to create event tag");
+  }
+
+  revalidatePath("/settings");
+  return data;
+}
+
+export async function updateEventTag(
+  familyId: string,
+  tagId: string,
+  name: string,
+  color?: string
+) {
+  const supabase = await createClient();
+
+  // Get current user
+  const { data: authData } = await supabase.auth.getUser();
+  const userId = authData?.user?.id;
+
+  if (!userId) {
+    throw new Error("Not authenticated");
+  }
+
+  // Validate admin access
+  const { isAdmin } = await validateAdminAccess(userId, familyId);
+  if (!isAdmin) {
+    throw new Error("Only family admins can update tags");
+  }
+
+  // Validate input
+  const validationResult = eventTagSchema.safeParse({ name, color });
+  if (!validationResult.success) {
+    throw new Error(
+      validationResult.error.issues[0]?.message || "Validation failed"
+    );
+  }
+  const validated = validationResult.data;
+
+  // Verify tag belongs to the family
+  const { data: existingTag, error: fetchError } = await supabase
+    .from("event_tags_config")
+    .select("id, family_id")
+    .eq("id", tagId)
+    .maybeSingle();
+
+  if (fetchError) {
+    throw new Error("Failed to verify tag ownership");
+  }
+
+  if (!existingTag || existingTag.family_id !== familyId) {
+    throw new Error("Tag not found or does not belong to this family");
+  }
+
+  // Update tag
+  const { data, error } = await supabase
+    .from("event_tags_config")
+    .update({
+      name: validated.name,
+      color: validated.color || null,
+    })
+    .eq("id", tagId)
+    .select()
+    .maybeSingle();
+
+  if (error) {
+    console.error("Error updating event tag:", error);
+    if (error.code === "23505") {
+      throw new Error("A tag with this name already exists in your family");
+    }
+    throw new Error(error.message || "Failed to update event tag");
+  }
+
+  revalidatePath("/settings");
+  return data;
+}
+
+export async function deleteEventTag(familyId: string, tagId: string) {
+  const supabase = await createClient();
+
+  // Get current user
+  const { data: authData } = await supabase.auth.getUser();
+  const userId = authData?.user?.id;
+
+  if (!userId) {
+    throw new Error("Not authenticated");
+  }
+
+  // Validate admin access
+  const { isAdmin } = await validateAdminAccess(userId, familyId);
+  if (!isAdmin) {
+    throw new Error("Only family admins can delete tags");
+  }
+
+  // Verify tag belongs to the family
+  const { data: existingTag, error: fetchError } = await supabase
+    .from("event_tags_config")
+    .select("id, family_id")
+    .eq("id", tagId)
+    .maybeSingle();
+
+  if (fetchError) {
+    throw new Error("Failed to verify tag ownership");
+  }
+
+  if (!existingTag || existingTag.family_id !== familyId) {
+    throw new Error("Tag not found or does not belong to this family");
+  }
+
+  // Delete tag (cascade delete handled by DB)
+  const { error } = await supabase
+    .from("event_tags_config")
+    .delete()
+    .eq("id", tagId);
+
+  if (error) {
+    console.error("Error deleting event tag:", error);
+    throw new Error(error.message || "Failed to delete event tag");
+  }
+
+  revalidatePath("/settings");
+}
+
+export async function getEventTags(familyId: string) {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("event_tags_config")
+    .select("*")
+    .eq("family_id", familyId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching event tags:", error);
+    throw new Error(error.message || "Failed to fetch event tags");
+  }
+
+  return data;
 }

@@ -2759,3 +2759,83 @@ describe("Family Management - createChildProfile", () => {
     ).rejects.toThrow("Auth service temporarily unavailable");
   });
 });
+
+describe("Event Tag Management - getEventTags", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("should fetch all event tags for a family", async () => {
+    // Arrange
+    const { createClient } = await import("@/lib/supabase/server");
+
+    const mockSupabaseClient = {
+      from: vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            order: vi.fn().mockResolvedValue({
+              data: [
+                {
+                  id: "tag-1",
+                  family_id: "family-1",
+                  name: "Birthday",
+                  color: "#6366f1",
+                  created_by: "admin-user",
+                  created_at: new Date().toISOString(),
+                },
+                {
+                  id: "tag-2",
+                  family_id: "family-1",
+                  name: "Anniversary",
+                  color: "#10b981",
+                  created_by: "admin-user",
+                  created_at: new Date().toISOString(),
+                },
+              ],
+              error: null,
+            }),
+          }),
+        }),
+      }),
+    };
+
+    vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
+
+    // Act
+    const { getEventTags } = await import("./actions");
+    const result = await getEventTags("family-1");
+
+    // Assert
+    expect(result).toHaveLength(2);
+    expect(result[0].name).toBe("Birthday");
+    expect(result[1].name).toBe("Anniversary");
+  });
+
+  it("should return empty array when no tags exist", async () => {
+    // Arrange
+    const { createClient } = await import("@/lib/supabase/server");
+
+    const mockSupabaseClient = {
+      from: vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            order: vi.fn().mockResolvedValue({
+              data: [],
+              error: null,
+            }),
+          }),
+        }),
+      }),
+    };
+
+    vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
+
+    // Act
+    const { getEventTags } = await import("./actions");
+    const result = await getEventTags("family-1");
+
+    // Assert
+    expect(result).toHaveLength(0);
+    expect(result).toEqual([]);
+  });
+});

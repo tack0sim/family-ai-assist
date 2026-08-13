@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { getFamilyData } from "@/actions";
+import { getEventTags, getFamilyData } from "@/actions";
 import { SettingsContent } from "@/components/settings/settings-content.client";
 import { Spinner } from "@/components/ui/spinner";
 import { checkUserFamilyContext } from "@/lib/supabase/check-family";
@@ -8,7 +8,10 @@ import { createClient } from "@/lib/supabase/server";
 
 async function SettingsContentWrapper() {
   const familyData = await getFamilyData();
-  return <SettingsContent familyData={familyData} />;
+  const eventTags = await getEventTags(familyData.familyId);
+  return (
+    <SettingsContent familyData={familyData} initialEventTags={eventTags} />
+  );
 }
 
 export default async function SettingsPage() {
