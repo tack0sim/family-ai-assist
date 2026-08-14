@@ -1321,7 +1321,7 @@ export async function deleteEvent(eventId: string): Promise<void> {
 async function canViewEvent(
   userId: string,
   event: Record<string, unknown>,
-  supabase: any
+  supabase: Awaited<ReturnType<typeof createClient>>
 ) {
   // For family visibility events, just check membership (already validated)
   if (event.visibility === "family") {

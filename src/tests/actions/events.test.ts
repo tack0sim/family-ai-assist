@@ -269,5 +269,231 @@ describe("Event CRUD Actions", () => {
         "Not a member of this event's family"
       );
     });
+
+    it("should return personal event if user is the creator", async () => {
+      vi.mocked(getUserFamilyMembership).mockResolvedValue({
+        familyId: testFamilyId,
+        role: "member",
+        status: "active",
+      });
+
+      mockSupabaseFrom.mockImplementation((table: string) => {
+        if (table === "events") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: {
+                    id: testEventId,
+                    title: "Personal Event",
+                    family_id: testFamilyId,
+                    created_by: testUserId,
+                    start_at: "2026-08-20T10:00:00Z",
+                    end_at: "2026-08-20T11:00:00Z",
+                    type: "event",
+                    all_day: false,
+                    visibility: "personal",
+                    description: null,
+                    rrule: null,
+                    recurrence_count: null,
+                    recurrence_expires_at: null,
+                    created_at: "2026-08-14T10:00:00Z",
+                    updated_at: "2026-08-14T10:00:00Z",
+                  },
+                }),
+              }),
+            }),
+          };
+        }
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({ data: [], error: null }),
+          }),
+        };
+      });
+
+      const result = await getEvent(testEventId);
+
+      expect(result.title).toBe("Personal Event");
+      expect(result.visibility).toBe("personal");
+    });
+
+    it("should return personal event if user is admin", async () => {
+      vi.mocked(getUserFamilyMembership).mockResolvedValue({
+        familyId: testFamilyId,
+        role: "admin",
+        status: "active",
+      });
+
+      vi.mocked(validateAdminAccess).mockResolvedValue({
+        isAdmin: true,
+      });
+
+      mockSupabaseFrom.mockImplementation((table: string) => {
+        if (table === "events") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: {
+                    id: testEventId,
+                    title: "Personal Event",
+                    family_id: testFamilyId,
+                    created_by: "other-user",
+                    start_at: "2026-08-20T10:00:00Z",
+                    end_at: "2026-08-20T11:00:00Z",
+                    type: "event",
+                    all_day: false,
+                    visibility: "personal",
+                    description: null,
+                    rrule: null,
+                    recurrence_count: null,
+                    recurrence_expires_at: null,
+                    created_at: "2026-08-14T10:00:00Z",
+                    updated_at: "2026-08-14T10:00:00Z",
+                  },
+                }),
+              }),
+            }),
+          };
+        }
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({ data: [], error: null }),
+          }),
+        };
+      });
+
+      const result = await getEvent(testEventId);
+
+      expect(result.title).toBe("Personal Event");
+    });
+
+    it("should return personal event if user is assigned", async () => {
+      vi.mocked(getUserFamilyMembership).mockResolvedValue({
+        familyId: testFamilyId,
+        role: "member",
+        status: "active",
+      });
+
+      vi.mocked(validateAdminAccess).mockResolvedValue({
+        isAdmin: false,
+      });
+
+      mockSupabaseFrom.mockImplementation((table: string) => {
+        if (table === "events") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: {
+                    id: testEventId,
+                    title: "Personal Event",
+                    family_id: testFamilyId,
+                    created_by: "other-user",
+                    start_at: "2026-08-20T10:00:00Z",
+                    end_at: "2026-08-20T11:00:00Z",
+                    type: "event",
+                    all_day: false,
+                    visibility: "personal",
+                    description: null,
+                    rrule: null,
+                    recurrence_count: null,
+                    recurrence_expires_at: null,
+                    created_at: "2026-08-14T10:00:00Z",
+                    updated_at: "2026-08-14T10:00:00Z",
+                  },
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "event_assignees") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  maybeSingle: vi.fn().mockResolvedValue({
+                    data: {
+                      id: "assign-123",
+                      event_id: testEventId,
+                      profile_id: testUserId,
+                    },
+                  }),
+                }),
+              }),
+            }),
+          };
+        }
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({ data: [], error: null }),
+          }),
+        };
+      });
+
+      const result = await getEvent(testEventId);
+
+      expect(result.title).toBe("Personal Event");
+    });
+
+    it("should reject personal event if user is not creator, admin, or assigned", async () => {
+      vi.mocked(getUserFamilyMembership).mockResolvedValue({
+        familyId: testFamilyId,
+        role: "member",
+        status: "active",
+      });
+
+      vi.mocked(validateAdminAccess).mockResolvedValue({
+        isAdmin: false,
+      });
+
+      mockSupabaseFrom.mockImplementation((table: string) => {
+        if (table === "events") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: {
+                    id: testEventId,
+                    title: "Personal Event",
+                    family_id: testFamilyId,
+                    created_by: "other-user",
+                    start_at: "2026-08-20T10:00:00Z",
+                    end_at: "2026-08-20T11:00:00Z",
+                    type: "event",
+                    all_day: false,
+                    visibility: "personal",
+                    description: null,
+                    rrule: null,
+                    recurrence_count: null,
+                    recurrence_expires_at: null,
+                    created_at: "2026-08-14T10:00:00Z",
+                    updated_at: "2026-08-14T10:00:00Z",
+                  },
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "event_assignees") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  maybeSingle: vi.fn().mockResolvedValue({
+                    data: null,
+                  }),
+                }),
+              }),
+            }),
+          };
+        }
+      });
+
+      await expect(getEvent(testEventId)).rejects.toThrow(
+        "Not authorized to view this personal event"
+      );
+    });
   });
 });

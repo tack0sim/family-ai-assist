@@ -37,21 +37,10 @@ export const createEventSchema = z
       if (!data.allDay) {
         return true;
       }
-      const startAt = new Date(data.startAt);
-      const endAt = new Date(data.endAt);
 
-      // For all-day events, end time should be at 23:59:59 of the same day or later
-      const startOfDay = new Date(startAt);
-      startOfDay.setHours(0, 0, 0, 0);
-
-      const endOfDay = new Date(startOfDay);
-      endOfDay.setHours(23, 59, 59, 999);
-
-      // For multi-day all-day events, check that end is at 23:59:59
-      const endDateOnly = new Date(endAt);
-      endDateOnly.setHours(23, 59, 59, 999);
-
-      return endAt.getHours() === 23 && endAt.getMinutes() === 59;
+      // For all-day events, end time must be at 23:59:59
+      // Use string-based validation to avoid timezone issues
+      return data.endAt.endsWith("23:59:59");
     },
     {
       message: "For all-day events, end time must be at 23:59:59",
@@ -103,7 +92,12 @@ export const updateEventSchema = updateEventBaseSchema
   )
   .refine(
     (data) => {
-      if (!(data.allDay && data.startAt && data.endAt)) {
+      // Only validate all-day format if endAt is provided
+      if (!data.endAt) {
+        return true;
+      }
+      // Only validate if this is an all-day update or if all-day was already true
+      if (data.allDay !== true) {
         return true;
       }
 
