@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { sendInvitationEmails } from "@/lib/email/send-invitation";
+import { createEventSchema, updateEventSchema } from "@/lib/schemas/events";
 import {
   createChildProfileSchema,
   eventTagSchema,
@@ -1036,4 +1037,392 @@ export async function getEventTags(familyId: string) {
   }
 
   return data;
+}
+
+// Event CRUD actions
+
+export async function createEvent(familyId: string, data: unknown) {
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  const userId = userData?.user?.id;
+
+  if (!userId) {
+    throw new Error("Not authenticated");
+  }
+
+  // Validate user is an active family member
+  const membership = await getUserFamilyMembership(userId);
+  if (membership.familyId !== familyId || membership.status !== "active") {
+    throw new Error("Not a member of this family or membership is inactive");
+  }
+
+  // Validate input data with safeParse
+  const {
+    success,
+    data: validated,
+    error: validationError,
+  } = createEventSchema.safeParse(data);
+
+  if (!success) {
+    throw new Error(`Validation error: ${validationError.message}`);
+  }
+
+  // Validate assignees are active family members
+  if (validated.assignees && validated.assignees.length > 0) {
+    const familyMembers = await getFamilyMembers(familyId);
+    const activeMemberIds = familyMembers
+      .filter((m) => m.status === "active")
+      .map((m) => m.user_id);
+
+    for (const assigneeId of validated.assignees) {
+      if (!activeMemberIds.includes(assigneeId)) {
+        throw new Error(`User ${assigneeId} is not an active family member`);
+      }
+    }
+  }
+
+  // Create event
+  const { data: event, error: eventError } = await supabase
+    .from("events")
+    .insert({
+      family_id: familyId,
+      created_by: userId,
+      title: validated.title,
+      description: validated.description,
+      start_at: validated.startAt,
+      end_at: validated.endAt,
+      all_day: validated.allDay,
+      type: validated.type,
+      visibility: validated.visibility,
+      rrule: validated.rrule,
+    })
+    .select()
+    .single();
+
+  if (eventError || !event) {
+    throw new Error(eventError?.message || "Failed to create event");
+  }
+
+  // Add assignees if any
+  if (validated.assignees && validated.assignees.length > 0) {
+    const assigneeRecords = validated.assignees.map((profileId) => ({
+      event_id: event.id,
+      profile_id: profileId,
+    }));
+
+    const { error: assigneeError } = await supabase
+      .from("event_assignees")
+      .insert(assigneeRecords);
+
+    if (assigneeError) {
+      await supabase.from("events").delete().eq("id", event.id);
+      throw new Error(assigneeError.message || "Failed to add event assignees");
+    }
+  }
+
+  // Add tags if any
+  if (validated.tags && validated.tags.length > 0) {
+    const tagRecords = validated.tags.map((tagId) => ({
+      event_id: event.id,
+      tag_id: tagId,
+    }));
+
+    const { error: tagError } = await supabase
+      .from("event_tags")
+      .insert(tagRecords);
+
+    if (tagError) {
+      await supabase.from("events").delete().eq("id", event.id);
+      throw new Error(tagError.message || "Failed to add event tags");
+    }
+  }
+
+  revalidatePath("/");
+
+  return mapEventToResponse(event, validated.assignees, validated.tags);
+}
+
+export async function updateEvent(eventId: string, data: unknown) {
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  const userId = userData?.user?.id;
+
+  if (!userId) {
+    throw new Error("Not authenticated");
+  }
+
+  // Get event to verify ownership and family
+  const { data: event, error: fetchError } = await supabase
+    .from("events")
+    .select("id, family_id, created_by")
+    .eq("id", eventId)
+    .single();
+
+  if (fetchError || !event) {
+    throw new Error("Event not found");
+  }
+
+  // Check authorization: creator or admin
+  const adminCheck = await validateAdminAccess(userId, event.family_id);
+  if (event.created_by !== userId && !adminCheck.isAdmin) {
+    throw new Error("Not authorized to update this event");
+  }
+
+  // Validate input data with safeParse
+  const {
+    success,
+    data: validated,
+    error: validationError,
+  } = updateEventSchema.safeParse(data);
+
+  if (!success) {
+    throw new Error(`Validation error: ${validationError.message}`);
+  }
+
+  // Validate assignees if provided
+  if (validated.assignees && validated.assignees.length > 0) {
+    const familyMembers = await getFamilyMembers(event.family_id);
+    const activeMemberIds = familyMembers
+      .filter((m) => m.status === "active")
+      .map((m) => m.user_id);
+
+    for (const assigneeId of validated.assignees) {
+      if (!activeMemberIds.includes(assigneeId)) {
+        throw new Error(`User ${assigneeId} is not an active family member`);
+      }
+    }
+  }
+
+  // Build update object with only provided fields
+  const updateData: Record<string, unknown> = {};
+  if (validated.title !== undefined) {
+    updateData.title = validated.title;
+  }
+  if (validated.description !== undefined) {
+    updateData.description = validated.description;
+  }
+  if (validated.startAt !== undefined) {
+    updateData.start_at = validated.startAt;
+  }
+  if (validated.endAt !== undefined) {
+    updateData.end_at = validated.endAt;
+  }
+  if (validated.allDay !== undefined) {
+    updateData.all_day = validated.allDay;
+  }
+  if (validated.type !== undefined) {
+    updateData.type = validated.type;
+  }
+  if (validated.visibility !== undefined) {
+    updateData.visibility = validated.visibility;
+  }
+  if (validated.rrule !== undefined) {
+    updateData.rrule = validated.rrule;
+  }
+  updateData.updated_at = new Date().toISOString();
+
+  const { data: updatedEvent, error: updateError } = await supabase
+    .from("events")
+    .update(updateData)
+    .eq("id", eventId)
+    .select()
+    .single();
+
+  if (updateError || !updatedEvent) {
+    throw new Error(updateError?.message || "Failed to update event");
+  }
+
+  // Update assignees if provided
+  if (validated.assignees) {
+    await supabase.from("event_assignees").delete().eq("event_id", eventId);
+
+    if (validated.assignees.length > 0) {
+      const assigneeRecords = validated.assignees.map((profileId) => ({
+        event_id: eventId,
+        profile_id: profileId,
+      }));
+
+      const { error: assigneeError } = await supabase
+        .from("event_assignees")
+        .insert(assigneeRecords);
+
+      if (assigneeError) {
+        throw new Error(
+          assigneeError.message || "Failed to update event assignees"
+        );
+      }
+    }
+  }
+
+  // Update tags if provided
+  if (validated.tags) {
+    await supabase.from("event_tags").delete().eq("event_id", eventId);
+
+    if (validated.tags.length > 0) {
+      const tagRecords = validated.tags.map((tagId) => ({
+        event_id: eventId,
+        tag_id: tagId,
+      }));
+
+      const { error: tagError } = await supabase
+        .from("event_tags")
+        .insert(tagRecords);
+
+      if (tagError) {
+        throw new Error(tagError.message || "Failed to update event tags");
+      }
+    }
+  }
+
+  revalidatePath("/");
+
+  return mapEventToResponse(updatedEvent, validated.assignees, validated.tags);
+}
+
+export async function deleteEvent(eventId: string): Promise<void> {
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  const userId = userData?.user?.id;
+
+  if (!userId) {
+    throw new Error("Not authenticated");
+  }
+
+  const { data: event, error: fetchError } = await supabase
+    .from("events")
+    .select("id, family_id, created_by")
+    .eq("id", eventId)
+    .single();
+
+  if (fetchError || !event) {
+    throw new Error("Event not found");
+  }
+
+  const adminCheck = await validateAdminAccess(userId, event.family_id);
+  if (event.created_by !== userId && !adminCheck.isAdmin) {
+    throw new Error("Not authorized to delete this event");
+  }
+
+  const { error: deleteError } = await supabase
+    .from("events")
+    .delete()
+    .eq("id", eventId);
+
+  if (deleteError) {
+    throw new Error(deleteError.message || "Failed to delete event");
+  }
+
+  revalidatePath("/");
+}
+
+/**
+ * Helper to check if user can view an event
+ */
+async function canViewEvent(
+  userId: string,
+  event: Record<string, unknown>,
+  supabase: any
+) {
+  // For family visibility events, just check membership (already validated)
+  if (event.visibility === "family") {
+    return true;
+  }
+
+  // For personal events, check if user is creator, admin, or assigned
+  const adminCheck = await validateAdminAccess(
+    userId,
+    event.family_id as string
+  );
+  if (event.created_by === userId || adminCheck.isAdmin) {
+    return true;
+  }
+
+  // Check if user is assigned to this event
+  const { data: assignment } = await supabase
+    .from("event_assignees")
+    .select("id")
+    .eq("event_id", event.id)
+    .eq("profile_id", userId)
+    .maybeSingle();
+
+  return !!assignment;
+}
+
+export async function getEvent(eventId: string) {
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  const userId = userData?.user?.id;
+
+  if (!userId) {
+    throw new Error("Not authenticated");
+  }
+
+  // Get event
+  const { data: event, error } = await supabase
+    .from("events")
+    .select("*")
+    .eq("id", eventId)
+    .single();
+
+  if (error || !event) {
+    throw new Error("Event not found");
+  }
+
+  // Verify user is a family member
+  const membership = await getUserFamilyMembership(userId);
+  if (
+    membership.familyId !== event.family_id ||
+    membership.status !== "active"
+  ) {
+    throw new Error("Not a member of this event's family");
+  }
+
+  // Check visibility permissions for personal events
+  const canView = await canViewEvent(userId, event, supabase);
+  if (!canView) {
+    throw new Error("Not authorized to view this personal event");
+  }
+
+  // Fetch assignees
+  const { data: assignees } = await supabase
+    .from("event_assignees")
+    .select("*")
+    .eq("event_id", eventId);
+
+  // Fetch tags
+  const { data: tags } = await supabase
+    .from("event_tags")
+    .select("*")
+    .eq("event_id", eventId);
+
+  return mapEventToResponse(event, assignees, tags);
+}
+
+/**
+ * Helper function to map database event to response format
+ */
+function mapEventToResponse(
+  event: Record<string, unknown>,
+  assignees?: unknown[] | null,
+  tags?: unknown[] | null
+) {
+  return {
+    id: event.id,
+    familyId: event.family_id,
+    createdBy: event.created_by,
+    title: event.title,
+    description: event.description,
+    startAt: event.start_at,
+    endAt: event.end_at,
+    allDay: event.all_day,
+    type: event.type,
+    visibility: event.visibility,
+    rrule: event.rrule,
+    recurrenceCount: event.recurrence_count,
+    recurrenceExpiresAt: event.recurrence_expires_at,
+    createdAt: event.created_at,
+    updatedAt: event.updated_at,
+    assignees: assignees || undefined,
+    tags: tags || undefined,
+  };
 }
