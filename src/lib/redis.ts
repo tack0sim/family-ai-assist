@@ -42,7 +42,7 @@ export function generateEventsCacheKey(familyId: string, date: Date): string {
 /**
  * Get ISO week number for a given date
  */
-function getWeekNumber(date: Date): number {
+export function getWeekNumber(date: Date): number {
   const d = new Date(
     Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
   );

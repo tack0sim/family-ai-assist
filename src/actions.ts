@@ -7,6 +7,7 @@ import { sendInvitationEmails } from "@/lib/email/send-invitation";
 import {
   generateEventsCacheKey,
   getRedisClient,
+  getWeekNumber,
   invalidateEventsCacheForDateRange,
 } from "@/lib/redis";
 import {
@@ -1170,10 +1171,10 @@ export async function updateEvent(eventId: string, data: unknown) {
     throw new Error("Not authenticated");
   }
 
-  // Get event to verify ownership and family
+  // Get event to verify ownership and family (including dates for cache invalidation)
   const { data: event, error: fetchError } = await supabase
     .from("events")
-    .select("id, family_id, created_by")
+    .select("id, family_id, created_by, start_at, end_at")
     .eq("id", eventId)
     .single();
 
@@ -1295,22 +1296,19 @@ export async function updateEvent(eventId: string, data: unknown) {
 
   // Invalidate cache for both old and new date ranges if dates were changed
   try {
-    const { data: oldEvent } = await supabase
-      .from("events")
-      .select("start_at, end_at")
-      .eq("id", eventId)
-      .single();
+    // Use original dates from the event we fetched before update
+    const oldStartDate = new Date(event.start_at);
+    const oldEndDate = new Date(event.end_at);
+    const newStartDate = validated.startAt
+      ? new Date(validated.startAt)
+      : oldStartDate;
+    const newEndDate = validated.endAt ? new Date(validated.endAt) : oldEndDate;
 
-    if (oldEvent) {
-      const oldStartDate = new Date(oldEvent.start_at);
-      const oldEndDate = new Date(oldEvent.end_at);
-      const newStartDate = validated.startAt
-        ? new Date(validated.startAt)
-        : oldStartDate;
-      const newEndDate = validated.endAt
-        ? new Date(validated.endAt)
-        : oldEndDate;
-
+    // Only invalidate if dates actually changed
+    if (
+      oldStartDate.getTime() !== newStartDate.getTime() ||
+      oldEndDate.getTime() !== newEndDate.getTime()
+    ) {
       // Invalidate both ranges to cover all affected weeks
       await invalidateEventsCacheForDateRange(
         event.family_id,
@@ -1521,8 +1519,14 @@ export async function getEvents(familyId: string, query: unknown) {
   }
 
   const startDate = new Date(validated.startAt);
+  const endDate = new Date(validated.endAt);
 
-  // Try to fetch from cache
+  // Check if query spans multiple weeks (for caching strategy)
+  const isSingleWeekQuery =
+    getWeekNumber(startDate) === getWeekNumber(endDate) &&
+    startDate.getFullYear() === endDate.getFullYear();
+
+  // Try to fetch from cache (only if single-week query)
   let cachedData: {
     events: Array<{
       event: Record<string, unknown>;
@@ -1531,17 +1535,19 @@ export async function getEvents(familyId: string, query: unknown) {
     }>;
   } | null = null;
 
-  try {
-    const redis = await getRedisClient();
-    const cacheKey = generateEventsCacheKey(familyId, startDate);
-    const cached = await redis.get(cacheKey);
+  if (isSingleWeekQuery) {
+    try {
+      const redis = await getRedisClient();
+      const cacheKey = generateEventsCacheKey(familyId, startDate);
+      const cached = await redis.get(cacheKey);
 
-    if (cached) {
-      cachedData = JSON.parse(cached);
+      if (cached) {
+        cachedData = JSON.parse(cached);
+      }
+    } catch (cacheError) {
+      console.warn("Failed to fetch from Redis cache:", cacheError);
+      // Continue without cache
     }
-  } catch (cacheError) {
-    console.warn("Failed to fetch from Redis cache:", cacheError);
-    // Continue without cache
   }
 
   let eventsWithDetails: Array<{
@@ -1553,13 +1559,14 @@ export async function getEvents(familyId: string, query: unknown) {
   if (cachedData) {
     eventsWithDetails = cachedData.events;
   } else {
-    // Query events by date range
+    // Query events that overlap with the date range (proper overlap logic)
+    // An event overlaps if: event.end_at >= query.start_at AND event.start_at <= query.end_at
     const { data: allEvents } = await supabase
       .from("events")
       .select("*")
       .eq("family_id", familyId)
-      .gte("start_at", validated.startAt)
-      .lte("end_at", validated.endAt);
+      .gte("end_at", validated.startAt)
+      .lte("start_at", validated.endAt);
 
     if (!allEvents) {
       throw new Error("Failed to fetch events");
@@ -1610,19 +1617,21 @@ export async function getEvents(familyId: string, query: unknown) {
       tags: tagsByEvent.get(event.id),
     }));
 
-    // Cache the results
-    try {
-      const redis = await getRedisClient();
-      const cacheKey = generateEventsCacheKey(familyId, startDate);
-      // Cache for 24 hours (86400 seconds)
-      await redis.setEx(
-        cacheKey,
-        86_400,
-        JSON.stringify({ events: eventsWithDetails })
-      );
-    } catch (cacheError) {
-      console.warn("Failed to cache events:", cacheError);
-      // Continue without caching
+    // Cache the results (only for single-week queries to avoid stale data)
+    if (isSingleWeekQuery) {
+      try {
+        const redis = await getRedisClient();
+        const cacheKey = generateEventsCacheKey(familyId, startDate);
+        // Cache for 24 hours (86400 seconds)
+        await redis.setEx(
+          cacheKey,
+          86_400,
+          JSON.stringify({ events: eventsWithDetails })
+        );
+      } catch (cacheError) {
+        console.warn("Failed to cache events:", cacheError);
+        // Continue without caching
+      }
     }
   }
 
@@ -1652,14 +1661,44 @@ export async function getEvents(familyId: string, query: unknown) {
     });
   }
 
-  // Apply visibility filter: only show events user can view
-  const visibleEvents: typeof filtered = [];
-  for (const item of filtered) {
-    const canView = await canViewEvent(userId, item.event, supabase);
-    if (canView) {
-      visibleEvents.push(item);
+  // Batch-fetch assignments for visibility checks (avoid N+1 queries)
+  const personalEventIds = filtered
+    .filter((item) => item.event.visibility === "personal")
+    .map((item) => item.event.id);
+
+  const userAssignments = new Set<string>();
+  if (personalEventIds.length > 0) {
+    const { data: assignments } = await supabase
+      .from("event_assignees")
+      .select("event_id")
+      .in("event_id", personalEventIds)
+      .eq("profile_id", userId);
+
+    if (assignments) {
+      assignments.forEach((a) => userAssignments.add(a.event_id));
     }
   }
+
+  // Apply visibility filter: only show events user can view
+  const isAdmin = (await validateAdminAccess(userId, familyId)).isAdmin;
+
+  const visibleEvents = filtered.filter((item) => {
+    // Family events are visible to all family members
+    if (item.event.visibility === "family") {
+      return true;
+    }
+
+    // Personal events: visible only to creator, admin, or assigned user
+    if (
+      item.event.created_by === userId ||
+      isAdmin ||
+      userAssignments.has(item.event.id)
+    ) {
+      return true;
+    }
+
+    return false;
+  });
 
   // Apply pagination
   const start = validated.offset;
