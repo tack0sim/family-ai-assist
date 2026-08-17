@@ -111,6 +111,20 @@ export const updateEventSchema = updateEventBaseSchema
 
 export type UpdateEventFormData = z.infer<typeof updateEventSchema>;
 
+export const getEventsSchema = z.object({
+  startAt: z
+    .string()
+    .datetime({ message: "Start time must be a valid datetime" }),
+  endAt: z.string().datetime({ message: "End time must be a valid datetime" }),
+  type: z.enum(["event", "appointment", "reminder", "deadline"]).optional(),
+  members: z.array(z.string().uuid()).optional(),
+  tags: z.array(z.string().uuid()).optional(),
+  limit: z.number().int().positive().default(50),
+  offset: z.number().int().nonnegative().default(0),
+});
+
+export type GetEventsQuery = z.infer<typeof getEventsSchema>;
+
 export interface EventData {
   allDay: boolean;
   assignees?: Array<{ id: string; profile_id: string }>;

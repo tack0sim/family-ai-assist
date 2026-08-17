@@ -4,7 +4,16 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { sendInvitationEmails } from "@/lib/email/send-invitation";
-import { createEventSchema, updateEventSchema } from "@/lib/schemas/events";
+import {
+  generateEventsCacheKey,
+  getRedisClient,
+  invalidateEventsCacheForDateRange,
+} from "@/lib/redis";
+import {
+  createEventSchema,
+  getEventsSchema,
+  updateEventSchema,
+} from "@/lib/schemas/events";
 import {
   createChildProfileSchema,
   eventTagSchema,
@@ -1137,6 +1146,16 @@ export async function createEvent(familyId: string, data: unknown) {
     }
   }
 
+  // Invalidate cache for the affected date range
+  try {
+    const startDate = new Date(validated.startAt);
+    const endDate = new Date(validated.endAt);
+    await invalidateEventsCacheForDateRange(familyId, startDate, endDate);
+  } catch (cacheError) {
+    console.error("Failed to invalidate events cache:", cacheError);
+    // Don't fail the operation if cache invalidation fails
+  }
+
   revalidatePath("/");
 
   return mapEventToResponse(event, validated.assignees, validated.tags);
@@ -1274,6 +1293,36 @@ export async function updateEvent(eventId: string, data: unknown) {
     }
   }
 
+  // Invalidate cache for both old and new date ranges if dates were changed
+  try {
+    const { data: oldEvent } = await supabase
+      .from("events")
+      .select("start_at, end_at")
+      .eq("id", eventId)
+      .single();
+
+    if (oldEvent) {
+      const oldStartDate = new Date(oldEvent.start_at);
+      const oldEndDate = new Date(oldEvent.end_at);
+      const newStartDate = validated.startAt
+        ? new Date(validated.startAt)
+        : oldStartDate;
+      const newEndDate = validated.endAt
+        ? new Date(validated.endAt)
+        : oldEndDate;
+
+      // Invalidate both ranges to cover all affected weeks
+      await invalidateEventsCacheForDateRange(
+        event.family_id,
+        new Date(Math.min(oldStartDate.getTime(), newStartDate.getTime())),
+        new Date(Math.max(oldEndDate.getTime(), newEndDate.getTime()))
+      );
+    }
+  } catch (cacheError) {
+    console.error("Failed to invalidate events cache:", cacheError);
+    // Don't fail the operation if cache invalidation fails
+  }
+
   revalidatePath("/");
 
   return mapEventToResponse(updatedEvent, validated.assignees, validated.tags);
@@ -1290,7 +1339,7 @@ export async function deleteEvent(eventId: string): Promise<void> {
 
   const { data: event, error: fetchError } = await supabase
     .from("events")
-    .select("id, family_id, created_by")
+    .select("id, family_id, created_by, start_at, end_at")
     .eq("id", eventId)
     .single();
 
@@ -1310,6 +1359,20 @@ export async function deleteEvent(eventId: string): Promise<void> {
 
   if (deleteError) {
     throw new Error(deleteError.message || "Failed to delete event");
+  }
+
+  // Invalidate cache for the date range of the deleted event
+  try {
+    const startDate = new Date(event.start_at);
+    const endDate = new Date(event.end_at);
+    await invalidateEventsCacheForDateRange(
+      event.family_id,
+      startDate,
+      endDate
+    );
+  } catch (cacheError) {
+    console.error("Failed to invalidate events cache:", cacheError);
+    // Don't fail the operation if cache invalidation fails
   }
 
   revalidatePath("/");
@@ -1424,5 +1487,197 @@ function mapEventToResponse(
     updatedAt: event.updated_at,
     assignees: assignees || undefined,
     tags: tags || undefined,
+  };
+}
+
+/**
+ * Query events with date range and optional filters (AND logic).
+ * Results are cached by week; cache TTL is 24 hours.
+ */
+export async function getEvents(familyId: string, query: unknown) {
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  const userId = userData?.user?.id;
+
+  if (!userId) {
+    throw new Error("Not authenticated");
+  }
+
+  // Validate input
+  const {
+    success,
+    data: validated,
+    error: validationError,
+  } = getEventsSchema.safeParse(query);
+
+  if (!success) {
+    throw new Error(`Validation error: ${validationError.message}`);
+  }
+
+  // Verify user is an active family member
+  const membership = await getUserFamilyMembership(userId);
+  if (membership.familyId !== familyId || membership.status !== "active") {
+    throw new Error("Not a member of this family or membership is inactive");
+  }
+
+  const startDate = new Date(validated.startAt);
+
+  // Try to fetch from cache
+  let cachedData: {
+    events: Array<{
+      event: Record<string, unknown>;
+      assignees?: Array<{ id: string; event_id: string; profile_id: string }>;
+      tags?: Array<{ id: string; event_id: string; tag_id: string }>;
+    }>;
+  } | null = null;
+
+  try {
+    const redis = await getRedisClient();
+    const cacheKey = generateEventsCacheKey(familyId, startDate);
+    const cached = await redis.get(cacheKey);
+
+    if (cached) {
+      cachedData = JSON.parse(cached);
+    }
+  } catch (cacheError) {
+    console.warn("Failed to fetch from Redis cache:", cacheError);
+    // Continue without cache
+  }
+
+  let eventsWithDetails: Array<{
+    event: Record<string, unknown>;
+    assignees?: Array<{ id: string; event_id: string; profile_id: string }>;
+    tags?: Array<{ id: string; event_id: string; tag_id: string }>;
+  }> = [];
+
+  if (cachedData) {
+    eventsWithDetails = cachedData.events;
+  } else {
+    // Query events by date range
+    const { data: allEvents } = await supabase
+      .from("events")
+      .select("*")
+      .eq("family_id", familyId)
+      .gte("start_at", validated.startAt)
+      .lte("end_at", validated.endAt);
+
+    if (!allEvents) {
+      throw new Error("Failed to fetch events");
+    }
+
+    const eventIds = allEvents.map((e) => e.id);
+
+    // Fetch assignees and tags for all events
+    const { data: assignees } = eventIds.length
+      ? await supabase
+          .from("event_assignees")
+          .select("*")
+          .in("event_id", eventIds)
+      : { data: [] };
+
+    const { data: tags } = eventIds.length
+      ? await supabase.from("event_tags").select("*").in("event_id", eventIds)
+      : { data: [] };
+
+    // Map assignees and tags by event_id
+    const assigneesByEvent = new Map<
+      string,
+      Array<{ id: string; event_id: string; profile_id: string }>
+    >();
+    const tagsByEvent = new Map<
+      string,
+      Array<{ id: string; event_id: string; tag_id: string }>
+    >();
+
+    assignees?.forEach((a) => {
+      if (!assigneesByEvent.has(a.event_id)) {
+        assigneesByEvent.set(a.event_id, []);
+      }
+      assigneesByEvent.get(a.event_id)!.push(a);
+    });
+
+    tags?.forEach((t) => {
+      if (!tagsByEvent.has(t.event_id)) {
+        tagsByEvent.set(t.event_id, []);
+      }
+      tagsByEvent.get(t.event_id)!.push(t);
+    });
+
+    // Build event details
+    eventsWithDetails = allEvents.map((event) => ({
+      event,
+      assignees: assigneesByEvent.get(event.id),
+      tags: tagsByEvent.get(event.id),
+    }));
+
+    // Cache the results
+    try {
+      const redis = await getRedisClient();
+      const cacheKey = generateEventsCacheKey(familyId, startDate);
+      // Cache for 24 hours (86400 seconds)
+      await redis.setEx(
+        cacheKey,
+        86_400,
+        JSON.stringify({ events: eventsWithDetails })
+      );
+    } catch (cacheError) {
+      console.warn("Failed to cache events:", cacheError);
+      // Continue without caching
+    }
+  }
+
+  // Apply filters (AND logic)
+  let filtered = eventsWithDetails;
+
+  // Type filter
+  if (validated.type) {
+    filtered = filtered.filter((item) => item.event.type === validated.type);
+  }
+
+  // Member filter (AND - all specified members must be assigned)
+  if (validated.members && validated.members.length > 0) {
+    filtered = filtered.filter((item) => {
+      const assignedIds = new Set(
+        (item.assignees || []).map((a) => a.profile_id)
+      );
+      return validated.members!.every((memberId) => assignedIds.has(memberId));
+    });
+  }
+
+  // Tag filter (AND - all specified tags must be present)
+  if (validated.tags && validated.tags.length > 0) {
+    filtered = filtered.filter((item) => {
+      const tagIds = new Set((item.tags || []).map((t) => t.tag_id));
+      return validated.tags!.every((tagId) => tagIds.has(tagId));
+    });
+  }
+
+  // Apply visibility filter: only show events user can view
+  const visibleEvents: typeof filtered = [];
+  for (const item of filtered) {
+    const canView = await canViewEvent(userId, item.event, supabase);
+    if (canView) {
+      visibleEvents.push(item);
+    }
+  }
+
+  // Apply pagination
+  const start = validated.offset;
+  const end = start + validated.limit;
+  const paginatedEvents = visibleEvents.slice(start, end);
+
+  // Map to response format
+  const formattedEvents = paginatedEvents.map((item) =>
+    mapEventToResponse(item.event, item.assignees, item.tags)
+  );
+
+  return {
+    data: formattedEvents,
+    pagination: {
+      offset: validated.offset,
+      limit: validated.limit,
+      total: visibleEvents.length,
+      hasMore: end < visibleEvents.length,
+    },
   };
 }

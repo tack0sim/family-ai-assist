@@ -8,8 +8,16 @@ vi.mock("next/navigation");
 vi.mock("@/lib/supabase/server");
 vi.mock("@/lib/supabase/family");
 vi.mock("@/lib/supabase/check-family");
+vi.mock("@/lib/redis");
 
-import { createEvent, deleteEvent, getEvent, updateEvent } from "@/actions";
+import {
+  createEvent,
+  deleteEvent,
+  getEvent,
+  getEvents,
+  updateEvent,
+} from "@/actions";
+import { getRedisClient } from "@/lib/redis";
 import {
   getFamilyMembers,
   getUserFamilyMembership,
@@ -494,6 +502,201 @@ describe("Event CRUD Actions", () => {
       await expect(getEvent(testEventId)).rejects.toThrow(
         "Not authorized to view this personal event"
       );
+    });
+  });
+
+  describe("getEvents", () => {
+    const testMemberId1 = "550e8400-e29b-41d4-a716-446655440003";
+    const testMemberId2 = "550e8400-e29b-41d4-a716-446655440004";
+    const testTagId1 = "550e8400-e29b-41d4-a716-446655440005";
+
+    const baseDate = new Date("2026-08-20T10:00:00Z");
+    const startDate = new Date("2026-08-17T00:00:00Z");
+    const endDate = new Date("2026-08-24T23:59:59Z");
+
+    let mockRedisClient: any;
+
+    beforeEach(() => {
+      mockRedisClient = {
+        get: vi.fn().mockResolvedValue(null),
+        setEx: vi.fn().mockResolvedValue("OK"),
+        del: vi.fn().mockResolvedValue(1),
+        keys: vi.fn().mockResolvedValue([]),
+        isOpen: true,
+      };
+
+      vi.mocked(getRedisClient).mockResolvedValue(mockRedisClient);
+
+      // Set up mock for getEvents query
+      mockSupabaseFrom = vi.fn((table: string) => {
+        if (table === "events") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                gte: vi.fn().mockReturnValue({
+                  lte: vi.fn().mockResolvedValue({
+                    data: [],
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "event_assignees") {
+          return {
+            select: vi.fn().mockReturnValue({
+              in: vi.fn().mockResolvedValue({
+                data: [],
+                error: null,
+              }),
+            }),
+          };
+        }
+        if (table === "event_tags") {
+          return {
+            select: vi.fn().mockReturnValue({
+              in: vi.fn().mockResolvedValue({
+                data: [],
+                error: null,
+              }),
+            }),
+          };
+        }
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({ data: [], error: null }),
+          }),
+        };
+      });
+
+      mockSupabaseClient = {
+        auth: {
+          getUser: vi.fn().mockResolvedValue({
+            data: { user: { id: testUserId } },
+          }),
+        },
+        from: mockSupabaseFrom,
+      };
+
+      vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
+    });
+
+    it("should fetch events by date range", async () => {
+      const result = await getEvents(testFamilyId, {
+        startAt: startDate.toISOString(),
+        endAt: endDate.toISOString(),
+      });
+
+      expect(result.data).toBeDefined();
+      expect(result.pagination).toBeDefined();
+      expect(result.pagination.total).toBeGreaterThanOrEqual(0);
+    });
+
+    it("should validate required date parameters", async () => {
+      await expect(
+        getEvents(testFamilyId, {
+          startAt: "invalid-date",
+          endAt: endDate.toISOString(),
+        })
+      ).rejects.toThrow("Validation error");
+    });
+
+    it("should require active family membership", async () => {
+      vi.mocked(getUserFamilyMembership).mockResolvedValueOnce({
+        familyId: "different-family",
+        role: "member",
+        status: "active",
+      });
+
+      await expect(
+        getEvents(testFamilyId, {
+          startAt: startDate.toISOString(),
+          endAt: endDate.toISOString(),
+        })
+      ).rejects.toThrow("Not a member of this family");
+    });
+
+    it("should apply default pagination (limit 50, offset 0)", async () => {
+      const result = await getEvents(testFamilyId, {
+        startAt: startDate.toISOString(),
+        endAt: endDate.toISOString(),
+      });
+
+      expect(result.pagination.limit).toBe(50);
+      expect(result.pagination.offset).toBe(0);
+    });
+
+    it("should accept custom limit and offset", async () => {
+      const result = await getEvents(testFamilyId, {
+        startAt: startDate.toISOString(),
+        endAt: endDate.toISOString(),
+        limit: 10,
+        offset: 5,
+      });
+
+      expect(result.pagination.limit).toBe(10);
+      expect(result.pagination.offset).toBe(5);
+    });
+
+    it("should support type filtering", async () => {
+      const result = await getEvents(testFamilyId, {
+        startAt: startDate.toISOString(),
+        endAt: endDate.toISOString(),
+        type: "event",
+      });
+
+      expect(result).toBeDefined();
+    });
+
+    it("should support member filtering (AND logic)", async () => {
+      const result = await getEvents(testFamilyId, {
+        startAt: startDate.toISOString(),
+        endAt: endDate.toISOString(),
+        members: [testMemberId1, testMemberId2],
+      });
+
+      expect(result).toBeDefined();
+    });
+
+    it("should support tag filtering (AND logic)", async () => {
+      const result = await getEvents(testFamilyId, {
+        startAt: startDate.toISOString(),
+        endAt: endDate.toISOString(),
+        tags: [testTagId1],
+      });
+
+      expect(result).toBeDefined();
+    });
+
+    it("should return paginated results with metadata", async () => {
+      const result = await getEvents(testFamilyId, {
+        startAt: startDate.toISOString(),
+        endAt: endDate.toISOString(),
+        limit: 10,
+        offset: 5,
+      });
+
+      expect(result.pagination).toEqual({
+        offset: 5,
+        limit: 10,
+        total: expect.any(Number),
+        hasMore: expect.any(Boolean),
+      });
+    });
+
+    it("should handle Redis cache gracefully when unavailable", async () => {
+      vi.mocked(getRedisClient).mockRejectedValueOnce(
+        new Error("Redis unavailable")
+      );
+
+      // Should not throw, should continue without cache
+      const result = await getEvents(testFamilyId, {
+        startAt: startDate.toISOString(),
+        endAt: endDate.toISOString(),
+      });
+
+      expect(result).toBeDefined();
     });
   });
 });
