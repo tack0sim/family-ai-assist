@@ -28,6 +28,7 @@ import {
 } from "@/lib/supabase/family";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service";
+import type { Event, EventWithDetails } from "@/lib/types/events";
 import type { FamilyData, FamilyInvitation } from "@/lib/types/settings";
 import { getBaseURL } from "@/lib/utils/get-base-url";
 import { validatePasswordComplexity } from "@/lib/utils/validate-password";
@@ -1463,7 +1464,7 @@ export async function getEvent(eventId: string) {
  * Helper function to map database event to response format
  */
 function mapEventToResponse(
-  event: Record<string, unknown>,
+  event: Event,
   assignees?: unknown[] | null,
   tags?: unknown[] | null
 ) {
@@ -1528,11 +1529,7 @@ export async function getEvents(familyId: string, query: unknown) {
 
   // Try to fetch from cache (only if single-week query)
   let cachedData: {
-    events: Array<{
-      event: Record<string, unknown>;
-      assignees?: Array<{ id: string; event_id: string; profile_id: string }>;
-      tags?: Array<{ id: string; event_id: string; tag_id: string }>;
-    }>;
+    events: EventWithDetails[];
   } | null = null;
 
   if (isSingleWeekQuery) {
@@ -1550,11 +1547,7 @@ export async function getEvents(familyId: string, query: unknown) {
     }
   }
 
-  let eventsWithDetails: Array<{
-    event: Record<string, unknown>;
-    assignees?: Array<{ id: string; event_id: string; profile_id: string }>;
-    tags?: Array<{ id: string; event_id: string; tag_id: string }>;
-  }> = [];
+  let eventsWithDetails: EventWithDetails[] = [];
 
   if (cachedData) {
     eventsWithDetails = cachedData.events;
