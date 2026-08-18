@@ -73,7 +73,7 @@ export function WeekGrid({ familyId, onWeekChange }: WeekGridProps) {
       <div className="p-6">
         <Card className="border-red-200 bg-red-50 p-4">
           <h3 className="font-semibold text-red-900 text-sm">
-            Fehler beim Laden von Ereignissen
+            Error while loading events...
           </h3>
           <p className="text-red-700 text-sm">{error}</p>
         </Card>
