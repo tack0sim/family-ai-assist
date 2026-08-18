@@ -30,6 +30,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 import type { Event, EventWithDetails } from "@/lib/types/events";
 import type { FamilyData, FamilyInvitation } from "@/lib/types/settings";
+import { formatEventResponse } from "@/lib/utils/format-events";
 import { getBaseURL } from "@/lib/utils/get-base-url";
 import { validatePasswordComplexity } from "@/lib/utils/validate-password";
 import { getUserDisplayName } from "./lib/supabase/user";
@@ -1712,4 +1713,29 @@ export async function getEvents(familyId: string, query: unknown) {
       hasMore: end < visibleEvents.length,
     },
   };
+}
+
+export async function fetchEventsByWeek(
+  weekStart: Date
+): Promise<EventWithDetails[]> {
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  const userId = userData?.user?.id;
+
+  if (!userId) {
+    throw new Error("Not authenticated");
+  }
+
+  const { familyId } = await getUserFamilyMembership(userId);
+
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekEnd.getDate() + 6);
+  weekEnd.setHours(23, 59, 59, 999);
+
+  const result = await getEvents(familyId, {
+    startAt: weekStart.toISOString(),
+    endAt: weekEnd.toISOString(),
+  });
+
+  return formatEventResponse(result.data);
 }
