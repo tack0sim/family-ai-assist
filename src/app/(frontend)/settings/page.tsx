@@ -5,12 +5,22 @@ import { SettingsContent } from "@/components/settings/settings-content.client";
 import { Spinner } from "@/components/ui/spinner";
 import { checkUserFamilyContext } from "@/lib/supabase/check-family";
 import { createClient } from "@/lib/supabase/server";
+import { getUserDisplayName } from "@/lib/supabase/user";
 
 async function SettingsContentWrapper() {
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+
   const familyData = await getFamilyData();
   const eventTags = await getEventTags(familyData.familyId);
+  const displayName = getUserDisplayName(userData.user) || "";
+
   return (
-    <SettingsContent familyData={familyData} initialEventTags={eventTags} />
+    <SettingsContent
+      familyData={familyData}
+      initialDisplayName={displayName}
+      initialEventTags={eventTags}
+    />
   );
 }
 

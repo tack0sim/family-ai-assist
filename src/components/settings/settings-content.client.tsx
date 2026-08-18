@@ -19,9 +19,11 @@ type TabId = (typeof TABS)[number]["id"];
 export function SettingsContent({
   familyData,
   initialEventTags,
+  initialDisplayName,
 }: {
   familyData: FamilyData;
   initialEventTags: EventTag[];
+  initialDisplayName: string;
 }) {
   const searchParams = useSearchParams();
   const currentTab = (searchParams.get("tab") || "profile") as TabId;
@@ -58,7 +60,9 @@ export function SettingsContent({
 
       {/* Tab Content */}
       <div>
-        {activeTab === "profile" && <ProfileTab />}
+        {activeTab === "profile" && (
+          <ProfileTab initialDisplayName={initialDisplayName} />
+        )}
         {activeTab === "family" && (
           <FamilyTab
             familyId={familyId}

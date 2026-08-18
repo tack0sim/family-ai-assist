@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { updateUserProfile } from "@/actions";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,32 +19,17 @@ import {
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { updateProfileSchema } from "@/lib/schemas/settings";
-import { createClient } from "@/lib/supabase/client";
-import { getUserDisplayName } from "@/lib/supabase/user";
 
-export function ProfileTab() {
-  const [displayName, setDisplayName] = useState("");
+interface ProfileTabProps {
+  initialDisplayName: string;
+}
+
+export function ProfileTab({ initialDisplayName }: ProfileTabProps) {
+  const [displayName, setDisplayName] = useState(initialDisplayName);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [initialLoading, setInitialLoading] = useState(true);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [hasChanged, setHasChanged] = useState(false);
-
-  // Fetch current user's display name on mount
-  useEffect(() => {
-    const fetchUserData = async () => {
-      const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      const currentDisplayName = getUserDisplayName(user) || "";
-      setDisplayName(currentDisplayName);
-      setInitialLoading(false);
-    };
-
-    fetchUserData();
-  }, []);
 
   const handleDisplayNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
@@ -92,16 +77,6 @@ export function ProfileTab() {
       setLoading(false);
     }
   };
-
-  if (initialLoading) {
-    return (
-      <Card>
-        <CardContent className="flex items-center justify-center py-8">
-          <Spinner />
-        </CardContent>
-      </Card>
-    );
-  }
 
   return (
     <div className="flex flex-col gap-6">
