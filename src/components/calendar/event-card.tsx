@@ -1,10 +1,10 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
-import type { Event } from "@/lib/types/events";
+import type { EventWithDetails } from "@/lib/types/events";
 
 interface EventCardProps {
-  event: Event;
+  event: EventWithDetails;
   isAllDay?: boolean;
 }
 
@@ -45,16 +45,16 @@ const eventTypeBadgeVariants: Record<
 };
 
 export function EventCard({ event, isAllDay = false }: EventCardProps) {
-  const colors = eventTypeColors[event.type] || eventTypeColors.event;
-  const variant = eventTypeBadgeVariants[event.type] || "default";
+  const colors = eventTypeColors[event.event.type] || eventTypeColors.event;
+  const variant = eventTypeBadgeVariants[event.event.type] || "default";
 
-  const startTime = new Date(event.start_at).toLocaleTimeString("de-DE", {
+  const startTime = new Date(event.event.start_at).toLocaleTimeString("de-DE", {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
   });
 
-  const endTime = new Date(event.end_at).toLocaleTimeString("de-DE", {
+  const endTime = new Date(event.event.end_at).toLocaleTimeString("de-DE", {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
@@ -66,10 +66,10 @@ export function EventCard({ event, isAllDay = false }: EventCardProps) {
     >
       <div className="mb-1 flex items-center justify-between gap-2">
         <h3 className={`truncate font-semibold text-sm ${colors.text}`}>
-          {event.title}
+          {event.event.title}
         </h3>
         <Badge className="flex-shrink-0 text-xs" variant={variant}>
-          {event.type}
+          {event.event.type}
         </Badge>
       </div>
 
@@ -79,10 +79,29 @@ export function EventCard({ event, isAllDay = false }: EventCardProps) {
         </p>
       )}
 
-      {event.description && (
+      {event.event.description && (
         <p className={`mt-1 line-clamp-2 text-xs ${colors.text} opacity-75`}>
-          {event.description}
+          {event.event.description}
         </p>
+      )}
+
+      {event.assignees && event.assignees.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1">
+          {event.assignees.slice(0, 2).map((assignee) => (
+            <Badge
+              className="text-xs"
+              key={assignee.profile_id}
+              variant="outline"
+            >
+              👤
+            </Badge>
+          ))}
+          {event.assignees.length > 2 && (
+            <Badge className="text-xs" variant="outline">
+              +{event.assignees.length - 2}
+            </Badge>
+          )}
+        </div>
       )}
     </div>
   );

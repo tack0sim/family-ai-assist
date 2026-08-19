@@ -19,7 +19,7 @@ export function AllDaySection({ allDayEvents, dayWidth }: AllDaySectionProps) {
       <div className={"flex flex-wrap gap-2"}>
         {allDayEvents.map((eventWithDetails) => (
           <div className="min-w-fit flex-1" key={eventWithDetails.event.id}>
-            <EventCard event={eventWithDetails.event} isAllDay />
+            <EventCard event={eventWithDetails} isAllDay />
           </div>
         ))}
       </div>

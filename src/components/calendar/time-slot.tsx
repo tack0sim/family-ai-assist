@@ -76,7 +76,7 @@ export function TimeSlot({ hour, minute, events }: TimeSlotProps) {
                 zIndex: 10,
               }}
             >
-              <EventCard event={event.event} />
+              <EventCard event={event} />
             </div>
           );
         })}

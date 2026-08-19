@@ -11,10 +11,12 @@ vi.mock("@/lib/supabase/check-family");
 vi.mock("@/lib/redis");
 
 import {
+  addEventAssignee,
   createEvent,
   deleteEvent,
   getEvent,
   getEvents,
+  removeEventAssignee,
   updateEvent,
 } from "@/actions";
 import { getRedisClient } from "@/lib/redis";
@@ -697,6 +699,207 @@ describe("Event CRUD Actions", () => {
       });
 
       expect(result).toBeDefined();
+    });
+  });
+
+  describe("Event Assignees Management", () => {
+    const testAssigneeId = "assignee-123";
+
+    it("should add an assignee to an event", async () => {
+      const mockSupabaseClient = {
+        auth: {
+          getUser: vi.fn().mockResolvedValue({
+            data: { user: { id: testUserId } },
+          }),
+        },
+        from: vi.fn((table: string) => {
+          if (table === "events") {
+            return {
+              select: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  single: vi.fn().mockResolvedValue({
+                    data: {
+                      id: testEventId,
+                      family_id: testFamilyId,
+                      created_by: testUserId,
+                      start_at: "2026-08-20T10:00:00Z",
+                      end_at: "2026-08-20T11:00:00Z",
+                    },
+                  }),
+                }),
+              }),
+            };
+          }
+          if (table === "event_assignees") {
+            return {
+              insert: vi.fn().mockResolvedValue({ error: null }),
+            };
+          }
+          return {};
+        }),
+      };
+
+      vi.mocked(createClient).mockResolvedValue(mockSupabaseClient as any);
+      vi.mocked(getUserFamilyMembership).mockResolvedValue({
+        familyId: testFamilyId,
+        status: "active",
+        role: "member",
+      } as any);
+      vi.mocked(validateAdminAccess).mockResolvedValue({
+        isAdmin: false,
+      } as any);
+      vi.mocked(getFamilyMembers).mockResolvedValue([
+        {
+          user_id: testAssigneeId,
+          status: "active",
+        } as any,
+      ]);
+
+      await addEventAssignee(testEventId, testAssigneeId);
+
+      expect(mockSupabaseClient.from).toHaveBeenCalledWith("event_assignees");
+    });
+
+    it("should remove an assignee from an event", async () => {
+      const mockSupabaseClient = {
+        auth: {
+          getUser: vi.fn().mockResolvedValue({
+            data: { user: { id: testUserId } },
+          }),
+        },
+        from: vi.fn((table: string) => {
+          if (table === "events") {
+            return {
+              select: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  single: vi.fn().mockResolvedValue({
+                    data: {
+                      id: testEventId,
+                      family_id: testFamilyId,
+                      created_by: testUserId,
+                      start_at: "2026-08-20T10:00:00Z",
+                      end_at: "2026-08-20T11:00:00Z",
+                    },
+                  }),
+                }),
+              }),
+            };
+          }
+          if (table === "event_assignees") {
+            return {
+              delete: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  eq: vi.fn().mockResolvedValue({ error: null }),
+                }),
+              }),
+            };
+          }
+          return {};
+        }),
+      };
+
+      vi.mocked(createClient).mockResolvedValue(mockSupabaseClient as any);
+      vi.mocked(getUserFamilyMembership).mockResolvedValue({
+        familyId: testFamilyId,
+        status: "active",
+        role: "member",
+      } as any);
+      vi.mocked(validateAdminAccess).mockResolvedValue({
+        isAdmin: false,
+      } as any);
+
+      await removeEventAssignee(testEventId, testAssigneeId);
+
+      expect(mockSupabaseClient.from).toHaveBeenCalledWith("event_assignees");
+    });
+
+    it("should reject adding assignee if user is not event creator/admin", async () => {
+      const mockSupabaseClient = {
+        auth: {
+          getUser: vi.fn().mockResolvedValue({
+            data: { user: { id: testUserId } },
+          }),
+        },
+        from: vi.fn((table: string) => {
+          if (table === "events") {
+            return {
+              select: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  single: vi.fn().mockResolvedValue({
+                    data: {
+                      id: testEventId,
+                      family_id: testFamilyId,
+                      created_by: "other-user",
+                      start_at: "2026-08-20T10:00:00Z",
+                      end_at: "2026-08-20T11:00:00Z",
+                    },
+                  }),
+                }),
+              }),
+            };
+          }
+          return {};
+        }),
+      };
+
+      vi.mocked(createClient).mockResolvedValue(mockSupabaseClient as any);
+      vi.mocked(getUserFamilyMembership).mockResolvedValue({
+        familyId: testFamilyId,
+        status: "active",
+        role: "member",
+      } as any);
+      vi.mocked(validateAdminAccess).mockResolvedValue({
+        isAdmin: false,
+      } as any);
+
+      await expect(
+        addEventAssignee(testEventId, testAssigneeId)
+      ).rejects.toThrow("Not authorized to modify this event");
+    });
+
+    it("should reject adding non-family-member as assignee", async () => {
+      const mockSupabaseClient = {
+        auth: {
+          getUser: vi.fn().mockResolvedValue({
+            data: { user: { id: testUserId } },
+          }),
+        },
+        from: vi.fn((table: string) => {
+          if (table === "events") {
+            return {
+              select: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  single: vi.fn().mockResolvedValue({
+                    data: {
+                      id: testEventId,
+                      family_id: testFamilyId,
+                      created_by: testUserId,
+                      start_at: "2026-08-20T10:00:00Z",
+                      end_at: "2026-08-20T11:00:00Z",
+                    },
+                  }),
+                }),
+              }),
+            };
+          }
+          return {};
+        }),
+      };
+
+      vi.mocked(createClient).mockResolvedValue(mockSupabaseClient as any);
+      vi.mocked(getUserFamilyMembership).mockResolvedValue({
+        familyId: testFamilyId,
+        status: "active",
+        role: "member",
+      } as any);
+      vi.mocked(validateAdminAccess).mockResolvedValue({
+        isAdmin: false,
+      } as any);
+      vi.mocked(getFamilyMembers).mockResolvedValue([] as any);
+
+      await expect(
+        addEventAssignee(testEventId, testAssigneeId)
+      ).rejects.toThrow("User is not an active family member");
     });
   });
 });

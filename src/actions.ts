@@ -1379,6 +1379,127 @@ export async function deleteEvent(eventId: string): Promise<void> {
 }
 
 /**
+ * Add an assignee to an event
+ * API-layer auth: validates user is event creator/admin, and assignee is active family member
+ */
+export async function addEventAssignee(eventId: string, profileId: string) {
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  const userId = userData?.user?.id;
+
+  if (!userId) {
+    throw new Error("Not authenticated");
+  }
+
+  // Get event to verify authorization and get family_id
+  const { data: event, error: fetchError } = await supabase
+    .from("events")
+    .select("id, family_id, created_by, start_at, end_at")
+    .eq("id", eventId)
+    .single();
+
+  if (fetchError || !event) {
+    throw new Error("Event not found");
+  }
+
+  // Check authorization: creator or admin
+  const adminCheck = await validateAdminAccess(userId, event.family_id);
+  if (event.created_by !== userId && !adminCheck.isAdmin) {
+    throw new Error("Not authorized to modify this event");
+  }
+
+  // Validate assignee is an active family member
+  const familyMembers = await getFamilyMembers(event.family_id);
+  const isMember = familyMembers.some(
+    (m) => m.user_id === profileId && m.status === "active"
+  );
+  if (!isMember) {
+    throw new Error("User is not an active family member");
+  }
+
+  // Add assignee (will be ignored if already exists due to unique constraint)
+  const { error: insertError } = await supabase
+    .from("event_assignees")
+    .insert({ event_id: eventId, profile_id: profileId });
+
+  if (insertError && !insertError.message.includes("duplicate")) {
+    throw new Error(insertError.message || "Failed to add assignee");
+  }
+
+  // Invalidate cache
+  try {
+    const startDate = new Date(event.start_at);
+    const endDate = new Date(event.end_at);
+    await invalidateEventsCacheForDateRange(
+      event.family_id,
+      startDate,
+      endDate
+    );
+  } catch (cacheError) {
+    console.error("Failed to invalidate events cache:", cacheError);
+  }
+
+  revalidatePath("/");
+}
+
+/**
+ * Remove an assignee from an event
+ * API-layer auth: validates user is event creator/admin
+ */
+export async function removeEventAssignee(eventId: string, profileId: string) {
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  const userId = userData?.user?.id;
+
+  if (!userId) {
+    throw new Error("Not authenticated");
+  }
+
+  // Get event to verify authorization
+  const { data: event, error: fetchError } = await supabase
+    .from("events")
+    .select("id, family_id, created_by, start_at, end_at")
+    .eq("id", eventId)
+    .single();
+
+  if (fetchError || !event) {
+    throw new Error("Event not found");
+  }
+
+  // Check authorization: creator or admin
+  const adminCheck = await validateAdminAccess(userId, event.family_id);
+  if (event.created_by !== userId && !adminCheck.isAdmin) {
+    throw new Error("Not authorized to modify this event");
+  }
+
+  // Remove assignee
+  const { error: deleteError } = await supabase
+    .from("event_assignees")
+    .delete()
+    .eq("event_id", eventId)
+    .eq("profile_id", profileId);
+
+  if (deleteError) {
+    throw new Error(deleteError.message || "Failed to remove assignee");
+  }
+
+  // Invalidate cache
+  try {
+    const startDate = new Date(event.start_at);
+    const endDate = new Date(event.end_at);
+    await invalidateEventsCacheForDateRange(
+      event.family_id,
+      startDate,
+      endDate
+    );
+  } catch (cacheError) {
+    console.error("Failed to invalidate events cache:", cacheError);
+  }
+
+  revalidatePath("/");
+}
+
+/**
  * Helper to check if user can view an event
  */
 async function canViewEvent(
