@@ -25,6 +25,7 @@ import {
   createEventSchema,
 } from "@/lib/schemas/events";
 import type { FamilyMember } from "@/lib/types/settings";
+import { datetimeLocalToISO } from "@/lib/utils/format-datetime-local";
 
 type AssigneeProfile = Pick<FamilyMember, "id" | "display_name">;
 
@@ -89,8 +90,8 @@ export function EventForm({
     const formData = {
       title,
       description,
-      startAt,
-      endAt,
+      startAt: datetimeLocalToISO(startAt),
+      endAt: datetimeLocalToISO(endAt),
       allDay,
       type,
       visibility,

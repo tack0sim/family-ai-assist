@@ -13,3 +13,16 @@ export function formatDateTimeLocal(date: Date): string {
 
   return `${year}-${month}-${day}T${hours}:${minutes}`;
 }
+
+/**
+ * Converts a datetime-local string to ISO 8601 format with timezone
+ * Assumes the input is in the user's local timezone and appends Z for UTC representation
+ * @param datetimeLocal - Datetime string in format YYYY-MM-DDTHH:mm (from datetime-local input)
+ * @returns ISO 8601 formatted datetime string (YYYY-MM-DDTHH:mm:00Z)
+ */
+export function datetimeLocalToISO(datetimeLocal: string): string {
+  if (!datetimeLocal) {
+    return "";
+  }
+  return `${datetimeLocal}:00Z`;
+}
