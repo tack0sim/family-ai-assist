@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createEvent, updateEvent } from "@/actions";
 import { EventAssigneeSelectorClient } from "@/components/calendar/event-assignee-selector.client";
 import { Button } from "@/components/ui/button";
@@ -64,6 +64,22 @@ export function EventForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  // Update form state when initialData changes (e.g., when time slot is clicked)
+  useEffect(() => {
+    if (open) {
+      setTitle(initialData?.title ?? "");
+      setDescription(initialData?.description ?? "");
+      setStartAt(initialData?.startAt ?? "");
+      setEndAt(initialData?.endAt ?? "");
+      setAllDay(initialData?.allDay ?? false);
+      setType((initialData?.type as any) ?? "event");
+      setVisibility((initialData?.visibility as any) ?? "family");
+      setAssignees(initialData?.assignees ?? []);
+      setError(null);
+      setFieldErrors({});
+    }
+  }, [open, initialData]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

@@ -8,6 +8,7 @@ interface DayColumnProps {
   allDayEvents: EventWithDetails[];
   date: Date;
   isToday: boolean;
+  onTimeSlotClick: (date: Date, hour: number, minute: number) => void;
   timedEvents: EventWithDetails[];
 }
 
@@ -18,6 +19,7 @@ export function DayColumn({
   allDayEvents,
   timedEvents,
   isToday,
+  onTimeSlotClick,
 }: DayColumnProps) {
   const dayName = date.toLocaleDateString("de-DE", { weekday: "short" });
   const dayDate = date.getDate();
@@ -46,8 +48,20 @@ export function DayColumn({
       <div className="flex-1 overflow-y-auto">
         {HOURS.map((hour) => (
           <div key={`${hour}-0`}>
-            <TimeSlot events={timedEvents} hour={hour} minute={0} />
-            <TimeSlot events={timedEvents} hour={hour} minute={30} />
+            <TimeSlot
+              date={date}
+              events={timedEvents}
+              hour={hour}
+              minute={0}
+              onTimeSlotClick={onTimeSlotClick}
+            />
+            <TimeSlot
+              date={date}
+              events={timedEvents}
+              hour={hour}
+              minute={30}
+              onTimeSlotClick={onTimeSlotClick}
+            />
           </div>
         ))}
       </div>

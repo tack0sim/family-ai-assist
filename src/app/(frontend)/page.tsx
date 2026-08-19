@@ -7,7 +7,10 @@ import { HeroSection } from "@/components/hero-section";
 import { Spinner } from "@/components/ui/spinner";
 import { CalendarProvider } from "@/lib/calendar-provider";
 import { checkUserFamilyContext } from "@/lib/supabase/check-family";
-import { getUserFamilyMembership } from "@/lib/supabase/family";
+import {
+  getFamilyMembers,
+  getUserFamilyMembership,
+} from "@/lib/supabase/family";
 import { createClient } from "@/lib/supabase/server";
 import { formatEventResponse } from "@/lib/utils/format-events";
 
@@ -38,10 +41,13 @@ async function CalendarView({ userId }: { userId: User["id"] }) {
     endAt: weekEnd.toISOString(),
   });
 
+  const familyMembers = await getFamilyMembers(familyId);
+
   return (
     <CalendarContainer
       events={formatEventResponse(result.data)}
       familyId={familyId}
+      familyMembers={familyMembers}
       onWeekChange={fetchEventsByWeek}
     />
   );

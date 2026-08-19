@@ -1,21 +1,35 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { useCalendar } from "@/hooks/use-calendar";
+import type { CreateEventFormData } from "@/lib/schemas/events";
 import type { EventWithDetails } from "@/lib/types/events";
+import type { FamilyMember } from "@/lib/types/settings";
+import { formatDateTimeLocal } from "@/lib/utils/format-datetime-local";
 import { DayColumn } from "./day-column";
+import { EventForm } from "./event-form.client";
 import { WeekNavigation } from "./week-navigation.client";
 
 interface WeekGridProps {
   familyId: string;
+  familyMembers: FamilyMember[];
   onWeekChange: (weekStart: Date) => Promise<EventWithDetails[]>;
 }
 
-export function WeekGrid({ familyId, onWeekChange }: WeekGridProps) {
+export function WeekGrid({
+  familyId,
+  familyMembers,
+  onWeekChange,
+}: WeekGridProps) {
   const { state, setLoading, setEvents } = useCalendar();
   const { currentWeekStart, events, loading, error } = state;
+
+  const [formOpen, setFormOpen] = useState(false);
+  const [initialFormData, setInitialFormData] = useState<
+    Partial<CreateEventFormData> | undefined
+  >();
 
   const handleWeekChange = useCallback(
     async (newWeekStart: Date) => {
@@ -31,6 +45,24 @@ export function WeekGrid({ familyId, onWeekChange }: WeekGridProps) {
     },
     [onWeekChange, setLoading, setEvents]
   );
+
+  const handleTimeSlotClick = (date: Date, hour: number, minute: number) => {
+    const startAt = new Date(date);
+    startAt.setHours(hour, minute, 0, 0);
+
+    const endAt = new Date(startAt);
+    endAt.setHours(hour + 1, minute, 0, 0);
+
+    setInitialFormData({
+      startAt: formatDateTimeLocal(startAt),
+      endAt: formatDateTimeLocal(endAt),
+    });
+    setFormOpen(true);
+  };
+
+  const handleFormSuccess = () => {
+    setInitialFormData(undefined);
+  };
 
   function getEventsForDay(date: Date): {
     allDay: EventWithDetails[];
@@ -100,12 +132,25 @@ export function WeekGrid({ familyId, onWeekChange }: WeekGridProps) {
                 allDayEvents={allDay}
                 date={date}
                 isToday={isToday(date)}
+                onTimeSlotClick={handleTimeSlotClick}
                 timedEvents={timed}
               />
             </div>
           );
         })}
       </div>
+
+      <EventForm
+        familyId={familyId}
+        familyMembers={familyMembers.map((m) => ({
+          id: m.id,
+          display_name: m.display_name || "Unknown",
+        }))}
+        initialData={initialFormData}
+        onOpenChange={setFormOpen}
+        onSuccess={handleFormSuccess}
+        open={formOpen}
+      />
     </div>
   );
 }
