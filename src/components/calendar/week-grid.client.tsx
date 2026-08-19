@@ -144,6 +144,7 @@ export function WeekGrid({
         familyId={familyId}
         familyMembers={familyMembers.map((m) => ({
           id: m.id,
+          user_id: m.user_id,
           display_name: m.display_name || "Unknown",
         }))}
         initialData={initialFormData}

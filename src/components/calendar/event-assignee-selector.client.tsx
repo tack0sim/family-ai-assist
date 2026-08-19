@@ -14,7 +14,7 @@ import {
 import { FieldLabel } from "@/components/ui/field";
 import type { FamilyMember } from "@/lib/types/settings";
 
-type AssigneeProfile = Pick<FamilyMember, "id" | "display_name">;
+type AssigneeProfile = Pick<FamilyMember, "id" | "user_id" | "display_name">;
 
 interface EventAssigneeSelectorClientProps {
   disabled?: boolean;
@@ -43,7 +43,7 @@ export function EventAssigneeSelectorClient({
   );
 
   const selectedMembers = useMemo(
-    () => members.filter((m) => selected.includes(m.id)),
+    () => members.filter((m) => selected.includes(m.user_id)),
     [members, selected]
   );
 
@@ -82,7 +82,7 @@ export function EventAssigneeSelectorClient({
               {member.display_name || "Unknown"}
               <button
                 className="ml-1 hover:opacity-75"
-                onClick={() => toggleAssignee(member.id)}
+                onClick={() => toggleAssignee(member.user_id)}
                 tabIndex={-1}
                 type="button"
               >
@@ -114,9 +114,9 @@ export function EventAssigneeSelectorClient({
                   key={member.id}
                 >
                   <input
-                    checked={selected.includes(member.id)}
+                    checked={selected.includes(member.user_id)}
                     className="h-4 w-4"
-                    onChange={() => toggleAssignee(member.id)}
+                    onChange={() => toggleAssignee(member.user_id)}
                     type="checkbox"
                   />
                   <span className="text-sm">

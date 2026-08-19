@@ -27,7 +27,7 @@ import {
 import type { FamilyMember } from "@/lib/types/settings";
 import { datetimeLocalToISO } from "@/lib/utils/format-datetime-local";
 
-type AssigneeProfile = Pick<FamilyMember, "id" | "display_name">;
+type AssigneeProfile = Pick<FamilyMember, "id" | "user_id" | "display_name">;
 
 interface EventFormProps {
   familyId: string;
