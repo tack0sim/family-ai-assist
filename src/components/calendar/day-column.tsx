@@ -21,9 +21,9 @@ export function DayColumn({
   isToday,
   onTimeSlotClick,
 }: DayColumnProps) {
-  const dayName = date.toLocaleDateString("de-DE", { weekday: "short" });
+  const dayName = date.toLocaleDateString("en-US", { weekday: "short" });
   const dayDate = date.getDate();
-  const monthName = date.toLocaleDateString("de-DE", { month: "short" });
+  const monthName = date.toLocaleDateString("en-US", { month: "short" });
 
   const bgColor = isToday ? "bg-blue-50" : "bg-white";
 

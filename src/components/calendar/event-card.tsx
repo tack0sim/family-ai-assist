@@ -48,13 +48,13 @@ export function EventCard({ event, isAllDay = false }: EventCardProps) {
   const colors = eventTypeColors[event.event.type] || eventTypeColors.event;
   const variant = eventTypeBadgeVariants[event.event.type] || "default";
 
-  const startTime = new Date(event.event.start_at).toLocaleTimeString("de-DE", {
+  const startTime = new Date(event.event.start_at).toLocaleTimeString("en-US", {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
   });
 
-  const endTime = new Date(event.event.end_at).toLocaleTimeString("de-DE", {
+  const endTime = new Date(event.event.end_at).toLocaleTimeString("en-US", {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,

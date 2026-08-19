@@ -51,7 +51,7 @@ export function WeekNavigation({ onWeekChange }: WeekNavigationProps) {
           variant="outline"
         >
           <ChevronLeft className="h-4 w-4" />
-          Vorherige Woche
+          Previous Week
         </Button>
         <Button
           className="gap-1"
@@ -59,11 +59,11 @@ export function WeekNavigation({ onWeekChange }: WeekNavigationProps) {
           size="sm"
           variant="outline"
         >
-          Nächste Woche
+          Next Week
           <ChevronRight className="h-4 w-4" />
         </Button>
         <Button onClick={handleToday} size="sm" variant="ghost">
-          Heute
+          Today
         </Button>
       </div>
       <div className="font-semibold text-slate-700 text-sm">{weekRange}</div>

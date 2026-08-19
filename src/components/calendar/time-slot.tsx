@@ -50,7 +50,7 @@ export function TimeSlot({
   onTimeSlotClick,
 }: TimeSlotProps) {
   const timeStr = new Date(2024, 0, 1, hour, minute).toLocaleTimeString(
-    "de-DE",
+    "en-US",
     {
       hour: "2-digit",
       minute: "2-digit",
