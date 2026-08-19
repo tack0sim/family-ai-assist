@@ -45,25 +45,29 @@ export function DayColumn({
         <AllDaySection allDayEvents={allDayEvents} dayWidth="w-full" />
       )}
 
-      <div className="flex-1 overflow-y-auto">
-        {HOURS.map((hour) => (
-          <div key={`${hour}-0`}>
-            <TimeSlot
-              date={date}
-              events={timedEvents}
-              hour={hour}
-              minute={0}
-              onTimeSlotClick={onTimeSlotClick}
-            />
-            <TimeSlot
-              date={date}
-              events={timedEvents}
-              hour={hour}
-              minute={30}
-              onTimeSlotClick={onTimeSlotClick}
-            />
-          </div>
-        ))}
+      <div className="min-h-0 flex-1">
+        {HOURS.map((hour) => {
+          const isLastSlot = hour === 23;
+          return (
+            <div key={`${hour}-0`}>
+              <TimeSlot
+                date={date}
+                events={timedEvents}
+                hour={hour}
+                minute={0}
+                onTimeSlotClick={onTimeSlotClick}
+              />
+              <TimeSlot
+                date={date}
+                events={timedEvents}
+                hour={hour}
+                isLast={isLastSlot}
+                minute={30}
+                onTimeSlotClick={onTimeSlotClick}
+              />
+            </div>
+          );
+        })}
       </div>
     </div>
   );

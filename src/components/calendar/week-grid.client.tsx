@@ -8,6 +8,8 @@ import type { CreateEventFormData } from "@/lib/schemas/events";
 import type { EventWithDetails } from "@/lib/types/events";
 import type { FamilyMember } from "@/lib/types/settings";
 import { formatDateTimeLocal } from "@/lib/utils/format-datetime-local";
+import { Container } from "../layout/container";
+import { Section } from "../layout/section";
 import { DayColumn } from "./day-column";
 import { EventForm } from "./event-form.client";
 import { WeekNavigation } from "./week-navigation.client";
@@ -114,44 +116,48 @@ export function WeekGrid({
   }
 
   return (
-    <div className="flex h-screen flex-col">
-      <WeekNavigation onWeekChange={handleWeekChange} />
+    <Section>
+      <Container>
+        <div className="flex flex-col">
+          <WeekNavigation onWeekChange={handleWeekChange} />
 
-      {loading && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/20">
-          <Spinner />
-        </div>
-      )}
-
-      <div className="flex flex-1 overflow-hidden">
-        {days.map((date) => {
-          const { allDay, timed } = getEventsForDay(date);
-          return (
-            <div className="flex-1 overflow-hidden" key={date.toISOString()}>
-              <DayColumn
-                allDayEvents={allDay}
-                date={date}
-                isToday={isToday(date)}
-                onTimeSlotClick={handleTimeSlotClick}
-                timedEvents={timed}
-              />
+          {loading && (
+            <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/20">
+              <Spinner />
             </div>
-          );
-        })}
-      </div>
+          )}
 
-      <EventForm
-        familyId={familyId}
-        familyMembers={familyMembers.map((m) => ({
-          id: m.id,
-          user_id: m.user_id,
-          display_name: m.display_name || "Unknown",
-        }))}
-        initialData={initialFormData}
-        onOpenChange={setFormOpen}
-        onSuccess={handleFormSuccess}
-        open={formOpen}
-      />
-    </div>
+          <div className="no-scrollbar flex h-[75vh] max-h-[75vh] flex-1 overflow-y-auto rounded-sm border-border border-y border-l">
+            {days.map((date) => {
+              const { allDay, timed } = getEventsForDay(date);
+              return (
+                <div className="flex-1" key={date.toISOString()}>
+                  <DayColumn
+                    allDayEvents={allDay}
+                    date={date}
+                    isToday={isToday(date)}
+                    onTimeSlotClick={handleTimeSlotClick}
+                    timedEvents={timed}
+                  />
+                </div>
+              );
+            })}
+          </div>
+
+          <EventForm
+            familyId={familyId}
+            familyMembers={familyMembers.map((m) => ({
+              id: m.id,
+              user_id: m.user_id,
+              display_name: m.display_name || "Unknown",
+            }))}
+            initialData={initialFormData}
+            onOpenChange={setFormOpen}
+            onSuccess={handleFormSuccess}
+            open={formOpen}
+          />
+        </div>
+      </Container>
+    </Section>
   );
 }

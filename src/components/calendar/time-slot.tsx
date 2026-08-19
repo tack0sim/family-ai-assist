@@ -1,12 +1,14 @@
 "use client";
 
 import type { EventWithDetails } from "@/lib/types/events";
+import { cn } from "@/lib/utils";
 import { EventCard } from "./event-card";
 
 interface TimeSlotProps {
   date: Date;
   events: EventWithDetails[];
   hour: number;
+  isLast?: boolean;
   minute: number;
   onTimeSlotClick: (date: Date, hour: number, minute: number) => void;
 }
@@ -42,12 +44,25 @@ function calculateEventPosition(
   return { topPercent, heightPercent };
 }
 
+function isEventStartInSlot(
+  event: EventWithDetails,
+  slotHour: number,
+  slotMinute: number
+): boolean {
+  const startDate = new Date(event.event.start_at);
+  const startHour = startDate.getHours();
+  const startMinute = startDate.getMinutes();
+
+  return startHour === slotHour && startMinute === slotMinute;
+}
+
 export function TimeSlot({
   date,
   hour,
   minute,
   events,
   onTimeSlotClick,
+  isLast,
 }: TimeSlotProps) {
   const timeStr = new Date(2024, 0, 1, hour, minute).toLocaleTimeString(
     "en-US",
@@ -58,9 +73,8 @@ export function TimeSlot({
     }
   );
 
-  const slotEvents = events.filter((e) =>
-    calculateEventPosition(e, hour, minute)
-  );
+  // Only show events that START in this slot to avoid duplicates
+  const slotEvents = events.filter((e) => isEventStartInSlot(e, hour, minute));
 
   const handleClick = () => {
     onTimeSlotClick(date, hour, minute);
@@ -69,7 +83,12 @@ export function TimeSlot({
   const isEmpty = slotEvents.length === 0;
 
   return (
-    <div className="relative flex border-border border-b">
+    <div
+      className={cn(
+        "relative flex min-h-[60px]",
+        isLast ? "" : "border-border border-b"
+      )}
+    >
       <div className="w-12 flex-shrink-0 bg-slate-50 py-2 text-center text-slate-500 text-xs">
         {minute === 0 && timeStr}
       </div>
@@ -88,13 +107,21 @@ export function TimeSlot({
               return null;
             }
 
+            // Calculate total height across all slots this event spans
+            const startDate = new Date(event.event.start_at);
+            const endDate = new Date(event.event.end_at);
+            const durationMinutes =
+              (endDate.getTime() - startDate.getTime()) / 60_000;
+            const slotHeightRem = 3.75; // 60px = 3.75rem
+            const eventHeightRem = (durationMinutes / 30) * slotHeightRem;
+
             return (
               <div
                 className="absolute right-1 left-1"
                 key={event.event.id}
                 style={{
                   top: `${position.topPercent * 100}%`,
-                  height: `${Math.max(position.heightPercent * 100, 30)}%`,
+                  height: `${Math.max(eventHeightRem * 26.67, 30)}px`,
                   zIndex: 10,
                 }}
               >
