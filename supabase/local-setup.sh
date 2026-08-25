@@ -71,18 +71,24 @@ check_health() {
 migrate() {
     echo -e "${YELLOW}Applying migrations...${NC}"
     
-    # Export env vars for use in docker exec
-    export POSTGRES_PASSWORD POSTGRES_DB
-    
     # Find all migration files and execute them
+    local failed=0
     for migration_file in "$SCRIPT_DIR/migrations"/*.sql; do
         if [ -f "$migration_file" ]; then
             echo -e "${YELLOW}Applying: $(basename "$migration_file")${NC}"
-            docker exec supabase_postgres psql -U postgres -d postgres -f "/dev/stdin" < "$migration_file" > /dev/null 2>&1 || echo -e "${RED}Failed to apply $(basename "$migration_file")${NC}"
+            if ! docker exec supabase_postgres psql -U postgres -d "${POSTGRES_DB}" -f "/dev/stdin" < "$migration_file"; then
+                echo -e "${RED}Failed to apply $(basename "$migration_file")${NC}"
+                failed=1
+            fi
         fi
     done
     
-    echo -e "${GREEN}Migrations applied${NC}"
+    if [ $failed -eq 1 ]; then
+        echo -e "${RED}Migrations failed - database schema may be incomplete${NC}"
+        return 1
+    fi
+    
+    echo -e "${GREEN}Migrations applied successfully${NC}"
 }
 
 # Reset database
@@ -110,7 +116,7 @@ logs() {
 
 # Exec into postgres
 psql_exec() {
-    docker exec -it supabase_postgres psql -U postgres -d postgres "$@"
+    docker exec -it supabase_postgres psql -U postgres -d "${POSTGRES_DB}" "$@"
 }
 
 # Show environment info
