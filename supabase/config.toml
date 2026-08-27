@@ -19,7 +19,7 @@ max_rows = 1000
 
 [db]
 port = 5432
-major_version = 16
+# major_version = 16  # removed: not supported in supabase CLI v2.x
 
 [auth]
 enabled = true
