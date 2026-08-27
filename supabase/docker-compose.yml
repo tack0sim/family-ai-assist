@@ -1,14 +1,18 @@
 services:
   postgres:
-    image: postgres:16-alpine
+    image: supabase/postgres:17.6.1.136
     container_name: supabase_postgres
     restart: unless-stopped
     ports:
       - "5432:5432"
     environment:
+      POSTGRES_HOST: /var/run/postgresql
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_INITDB_ARGS: "-c max_connections=200"
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: ${POSTGRES_DB}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXP: 3600
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:

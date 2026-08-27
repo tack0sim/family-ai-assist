@@ -76,7 +76,7 @@ migrate() {
     for migration_file in "$SCRIPT_DIR/migrations"/*.sql; do
         if [ -f "$migration_file" ]; then
             echo -e "${YELLOW}Applying: $(basename "$migration_file")${NC}"
-            if ! docker exec supabase_postgres psql -U postgres -d "${POSTGRES_DB}" -f "/dev/stdin" < "$migration_file"; then
+            if ! docker exec -i supabase_postgres psql -U postgres -d "${POSTGRES_DB}" -f "/dev/stdin" < "$migration_file"; then
                 echo -e "${RED}Failed to apply $(basename "$migration_file")${NC}"
                 failed=1
             fi
