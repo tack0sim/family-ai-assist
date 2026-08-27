@@ -1,36 +1,116 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Family AI Assistant
+
+A privacy-first platform for families to coordinate schedules, communicate via an AI assistant, and share files in a secure shared space.
+
+Built with **Next.js**, **Supabase** (auth + Postgres + storage), **Redis** (rate-limiting), **OpenAI**, and **Resend** (email).
+
+---
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js (see `.nvmrc`)
+- pnpm
+- Docker Desktop (for the local Supabase stack)
+
+### 1. Install dependencies
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Set up environment variables
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+cp env.example .env.local
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Fill in `.env.local` — see [Environment Variables](#environment-variables) below for details.
 
-## Learn More
+### 3. Start the local Supabase stack
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+./supabase/local-setup.sh start
+./supabase/local-setup.sh migrate
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+See [DOCKER_DEV.md](./DOCKER_DEV.md) for full Docker setup documentation.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 4. Run the development server
 
-## Deploy on Vercel
+```bash
+pnpm dev
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Open [http://localhost:3000](http://localhost:3000).
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+## Environment Variables
+
+All variables are documented in [`env.example`](./env.example). Copy it and fill in the values for your target environment.
+
+| Variable | Required | Description |
+|---|---|---|
+| `NEXT_PUBLIC_BASE_URL` | ✅ | Full public URL of the app (`http://localhost:3000` locally) |
+| `NEXT_PUBLIC_SUPABASE_URL` | ✅ | Supabase REST API URL |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | ✅ | Anon key — safe to expose to the browser |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✅ | Same as publishable key (legacy SDK compat) |
+| `SUPABASE_SERVICE_ROLE_KEY` | ✅ | Service-role key — **server-only, never expose to the browser** |
+| `SUPABASE_DB_PASSWORD` | ✅ | Database password (used by migrations) |
+| `SUPABASE_CALLBACK_URL` | ✅ | OAuth redirect URL (e.g. `http://localhost:3000/auth/callback`) |
+| `SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID` | ✅ | Google OAuth client ID |
+| `SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_SECRET` | ✅ | Google OAuth client secret |
+| `REDIS_URL` | ✅ | Redis connection string (rate-limiting for AI chat) |
+| `OPENAI_API_KEY` | ✅ | OpenAI API key for the AI assistant |
+| `RESEND_API_KEY` | ✅ | Resend API key for transactional email |
+| `RESEND_FROM_EMAIL` | ✅ | "From" address used in outgoing emails |
+
+### Local vs. Production
+
+| Setting | Local | Production |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | `http://localhost:3001` (Docker PostgREST) | `https://<project-ref>.supabase.co` |
+| `NEXT_PUBLIC_BASE_URL` | `http://localhost:3000` | `https://yourdomain.com` |
+| `SUPABASE_CALLBACK_URL` | `http://localhost:3000/auth/callback` | `https://yourdomain.com/auth/callback` |
+| `REDIS_URL` | `redis://localhost:6379` | Managed Redis (e.g. Upstash) |
+
+### Environment files
+
+| File | Committed | Purpose |
+|---|---|---|
+| `env.example` | ✅ Yes | Template showing all required variables (no secrets) |
+| `.env.local` | ❌ No | Local development overrides |
+| `.env.production` | ❌ No | Production values (managed in deployment platform, e.g. Vercel) |
+
+> **Never commit `.env.local` or `.env.production`.** They are gitignored. Use your deployment platform's secret manager (e.g. Vercel Environment Variables) for production secrets.
+
+---
+
+## Project Structure
+
+```
+src/
+  app/          # Next.js App Router pages and route handlers
+  components/   # Shared UI components
+  lib/          # Utilities, Supabase client, auth helpers
+supabase/
+  migrations/   # SQL migration files (applied in order)
+  docker-compose.yml
+  local-setup.sh
+```
+
+---
+
+## Scripts
+
+| Command | Description |
+|---|---|
+| `pnpm dev` | Start Next.js dev server |
+| `pnpm build` | Production build |
+| `pnpm test` | Run tests (Vitest) |
+| `pnpm lint` | Run Biome linter |
+| `./supabase/local-setup.sh start` | Start local Supabase Docker stack |
+| `./supabase/local-setup.sh migrate` | Apply database migrations |
+| `./supabase/local-setup.sh reset` | ⚠️ Reset local database (deletes all data) |
