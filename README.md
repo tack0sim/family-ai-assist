@@ -56,7 +56,6 @@ All variables are documented in [`env.example`](./env.example). Copy it and fill
 | `NEXT_PUBLIC_BASE_URL` | ✅ | Full public URL of the app (`http://localhost:3000` locally) |
 | `NEXT_PUBLIC_SUPABASE_URL` | ✅ | Supabase REST API URL |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | ✅ | Anon key — safe to expose to the browser |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✅ | Same as publishable key (legacy SDK compat) |
 | `SUPABASE_SERVICE_ROLE_KEY` | ✅ | Service-role key — **server-only, never expose to the browser** |
 | `SUPABASE_DB_PASSWORD` | ✅ | Database password (used by migrations) |
 | `SUPABASE_CALLBACK_URL` | ✅ | OAuth redirect URL (e.g. `http://localhost:3000/auth/callback`) |
