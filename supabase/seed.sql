@@ -2,12 +2,73 @@
 -- Contains minimal test data for development and migration testing
 --
 -- Includes:
+-- - 2 test authentication users (admin and regular user)
 -- - 3 test user profiles (including admin and child account)
 -- - 1 family group with members
 -- - 6 sample events for testing calendar features
 -- - Event assignments and custom tags
+--
+-- Test User Credentials:
+-- - admin@example.com / password123
+-- - test@example.com / password123
+-- - child profile: created via API (no login credentials)
 
+\set ON_ERROR_STOP on
 SET session_replication_role = replica;
+
+--
+-- Test authentication users
+-- Password: password123 (bcrypt encrypted)
+--
+
+INSERT INTO "auth"."users" (
+  "id",
+  "instance_id",
+  "aud",
+  "role",
+  "email",
+  "encrypted_password",
+  "confirmed_at",
+  "raw_app_meta_data",
+  "raw_user_meta_data",
+  "created_at",
+  "updated_at",
+  "confirmation_token",
+  "email_change",
+  "email_change_token"
+) VALUES
+  (
+    'b4150a47-a677-4967-9f88-7f64efa7dc82',
+    '00000000-0000-0000-0000-000000000000'::uuid,
+    'authenticated',
+    'authenticated',
+    'admin@example.com',
+    crypt('password123', gen_salt('bf')),
+    now(),
+    '{}'::jsonb,
+    '{"display_name":"Admin User"}'::jsonb,
+    '2026-07-15 15:28:20.258156+00',
+    '2026-07-15 15:28:20.258156+00',
+    '',
+    '',
+    ''
+  ),
+  (
+    'c9f54310-3fe9-473c-856b-7f6254816d01',
+    '00000000-0000-0000-0000-000000000000'::uuid,
+    'authenticated',
+    'authenticated',
+    'test@example.com',
+    crypt('password123', gen_salt('bf')),
+    now(),
+    '{}'::jsonb,
+    '{"display_name":"Test User"}'::jsonb,
+    '2026-07-27 16:29:36.511249+00',
+    '2026-07-27 16:29:36.511249+00',
+    '',
+    '',
+    ''
+  );
 
 --
 -- Test user profiles

@@ -91,6 +91,23 @@ migrate() {
     echo -e "${GREEN}Migrations applied successfully${NC}"
 }
 
+# Apply seed data
+seed() {
+    echo -e "${YELLOW}Applying seed data...${NC}"
+    
+    if [ ! -f "$SCRIPT_DIR/seed.sql" ]; then
+        echo -e "${RED}Error: seed.sql not found${NC}"
+        return 1
+    fi
+    
+    if ! docker exec -i supabase_postgres psql -U postgres -d "${POSTGRES_DB}" -f "/dev/stdin" < "$SCRIPT_DIR/seed.sql"; then
+        echo -e "${RED}Failed to apply seed data${NC}"
+        return 1
+    fi
+    
+    echo -e "${GREEN}Seed data applied successfully${NC}"
+}
+
 # Reset database
 reset() {
     echo -e "${YELLOW}Resetting database (this will drop all data)...${NC}"
@@ -174,8 +191,12 @@ case "${1:-help}" in
     info)
         info
         ;;
+    seed)
+        check_docker
+        seed
+        ;;
     *)
-        echo "Usage: $0 {start|stop|restart|status|migrate|reset|logs|psql|info}"
+        echo "Usage: $0 {start|stop|restart|status|migrate|seed|reset|logs|psql|info}"
         echo ""
         echo "Commands:"
         echo "  start     - Start all Supabase services"
@@ -183,6 +204,7 @@ case "${1:-help}" in
         echo "  restart   - Restart all services"
         echo "  status    - Check service health"
         echo "  migrate   - Apply pending migrations"
+        echo "  seed      - Apply seed data from supabase/seed.sql"
         echo "  reset     - Reset database (WARNING: deletes all data)"
         echo "  logs      - Show service logs (add service name for specific logs)"
         echo "  psql      - Connect to PostgreSQL CLI"

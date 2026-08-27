@@ -149,13 +149,13 @@ SELECT id, name, executed_at FROM schema_migrations ORDER BY name;
 
 ### Seeding Data
 
-Seed data is in `supabase/seed.sql` and can be applied manually after migrations.
+Seed data is in `supabase/seed.sql` and can be applied after migrations.
 
 **To apply seed data:**
 
 ```bash
-# Connect to PostgreSQL and pipe the seed file
-./supabase/local-setup.sh psql -f supabase/seed.sql
+# Apply seed data to local database
+./supabase/local-setup.sh seed
 ```
 
 **Add new seed data:**
@@ -163,7 +163,7 @@ Seed data is in `supabase/seed.sql` and can be applied manually after migrations
 ```bash
 # Edit supabase/seed.sql with new INSERT statements
 # Then apply
-./supabase/local-setup.sh psql -f supabase/seed.sql
+./supabase/local-setup.sh seed
 ```
 
 **Reset local database (⚠️ destructive):**
@@ -176,7 +176,7 @@ This deletes all tables and data. Migrations are reapplied. To restore seed data
 
 ```bash
 ./supabase/local-setup.sh migrate
-./supabase/local-setup.sh psql -f supabase/seed.sql
+./supabase/local-setup.sh seed
 ```
 
 ### Exporting Production Schema
