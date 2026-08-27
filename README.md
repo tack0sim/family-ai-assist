@@ -2,21 +2,23 @@
 
 A privacy-first platform for families to coordinate schedules, communicate via an AI assistant, and share files in a secure shared space.
 
-Built with **Next.js**, **Supabase** (auth + Postgres + storage), **Redis** (rate-limiting), **OpenAI**, and **Resend** (email).
+**Tech Stack:** Next.js · Supabase (auth + Postgres + storage) · Redis · OpenAI · Resend (email)
 
 ---
 
-## Getting Started
+## Quick Start
 
 ### Prerequisites
 
-- Node.js (see `.nvmrc`)
-- pnpm
-- Docker Desktop (for the local Supabase stack)
+- **Node.js** 18+ (see [`.nvmrc`](.nvmrc) for exact version)
+- **pnpm** (install with `npm install -g pnpm`)
+- **Docker Desktop** running (for local Supabase and Redis)
 
-### 1. Install dependencies
+### 1. Clone and install
 
 ```bash
+git clone https://github.com/tack0sim/family-ai-assist
+cd family-ai-assist
 pnpm install
 ```
 
@@ -26,7 +28,19 @@ pnpm install
 cp env.example .env.local
 ```
 
-Fill in `.env.local` with the local Docker stack values. The keys (`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`) come from `supabase/.env.docker`. See [Environment Variables](#environment-variables) for the full reference.
+The script will copy the template. Auto-populate from `supabase/.env.docker`:
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=http://localhost:3001
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<copy from supabase/.env.docker>
+SUPABASE_SERVICE_ROLE_KEY=<copy from supabase/.env.docker>
+SUPABASE_DB_PASSWORD=<copy from supabase/.env.docker>
+REDIS_URL=redis://localhost:6379
+NEXT_PUBLIC_BASE_URL=http://localhost:3000
+SUPABASE_CALLBACK_URL=http://localhost:3000/auth/callback
+```
+
+See [Environment Variables](#environment-variables) for the full reference.
 
 ### 3. Start the local Supabase stack
 
@@ -35,7 +49,7 @@ Fill in `.env.local` with the local Docker stack values. The keys (`NEXT_PUBLIC_
 ./supabase/local-setup.sh migrate
 ```
 
-See [DOCKER_DEV.md](./DOCKER_DEV.md) for full Docker setup documentation.
+This starts PostgreSQL, PostgREST API, and Redis. Migrations are applied automatically.
 
 ### 4. Run the development server
 
@@ -43,92 +57,339 @@ See [DOCKER_DEV.md](./DOCKER_DEV.md) for full Docker setup documentation.
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3000](http://localhost:3000). The app auto-reloads on file changes.
 
 ---
 
 ## Environment Variables
 
-All variables are documented in [`env.example`](./env.example). Copy it and fill in the values for your target environment.
+All variables are documented in [`env.example`](./env.example). **Never commit secrets** — always use `.env.local` (gitignored) for local development.
 
-| Variable | Required | Description |
-|---|---|---|
-| `NEXT_PUBLIC_BASE_URL` | ✅ | Full public URL of the app (`http://localhost:3000` locally) |
-| `NEXT_PUBLIC_SUPABASE_URL` | ✅ | Supabase REST API URL |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | ✅ | Anon key — safe to expose to the browser |
-| `SUPABASE_SERVICE_ROLE_KEY` | ✅ | Service-role key — **server-only, never expose to the browser** |
-| `SUPABASE_DB_PASSWORD` | ✅ | Database password (used by migrations) |
-| `SUPABASE_CALLBACK_URL` | ✅ | OAuth redirect URL (e.g. `http://localhost:3000/auth/callback`) |
-| `SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID` | ✅ | Google OAuth client ID |
-| `SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_SECRET` | ✅ | Google OAuth client secret |
-| `REDIS_URL` | ✅ | Redis connection string (rate-limiting for AI chat) |
-| `OPENAI_API_KEY` | ✅ | OpenAI API key for the AI assistant |
-| `RESEND_API_KEY` | ✅ | Resend API key for transactional email |
-| `RESEND_FROM_EMAIL` | ✅ | "From" address used in outgoing emails |
+### Required Variables
 
-### Local vs. Production
+| Variable | Local | Production | Purpose |
+|---|---|---|---|
+| `NEXT_PUBLIC_BASE_URL` | `http://localhost:3000` | `https://yourdomain.com` | Public app URL for OAuth redirects and emails |
+| `NEXT_PUBLIC_SUPABASE_URL` | `http://localhost:3001` | `https://<project>.supabase.co` | Supabase REST API endpoint |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | From `.env.docker` | Supabase dashboard | Anon key (safe to expose in browser) |
+| `SUPABASE_SERVICE_ROLE_KEY` | From `.env.docker` | Supabase dashboard | Service key (**server-only**, never expose) |
+| `SUPABASE_DB_PASSWORD` | From `.env.docker` | AWS Secrets Manager | Database password for migrations |
+| `SUPABASE_CALLBACK_URL` | `http://localhost:3000/auth/callback` | `https://yourdomain.com/auth/callback` | OAuth redirect URL |
 
-| Setting | Local | Production |
-|---|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | `http://localhost:3001` (Docker PostgREST) | `https://<project-ref>.supabase.co` |
-| `NEXT_PUBLIC_BASE_URL` | `http://localhost:3000` | `https://yourdomain.com` |
-| `SUPABASE_CALLBACK_URL` | `http://localhost:3000/auth/callback` | `https://yourdomain.com/auth/callback` |
-| `REDIS_URL` | `redis://localhost:6379` | Managed Redis (e.g. Upstash) |
+### Optional (Depends on Features)
 
-### Environment files
+| Variable | Purpose |
+|---|---|
+| `SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID` | Google OAuth — get from [Google Cloud Console](https://console.cloud.google.com) |
+| `SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_SECRET` | Google OAuth secret |
+| `REDIS_URL` | Redis connection for rate-limiting AI chat. Local: `redis://localhost:6379` |
+| `OPENAI_API_KEY` | OpenAI API key for the AI assistant — get from [platform.openai.com](https://platform.openai.com/account/api-keys) |
+| `RESEND_API_KEY` | Transactional email via Resend — get from [resend.com](https://resend.com) |
+| `RESEND_FROM_EMAIL` | "From" address for emails (e.g., `noreply@yourdomain.com`) |
+
+### Environment Files
 
 | File | Committed | Purpose |
 |---|---|---|
-| `env.example` | ✅ Yes | Template showing all required variables (no secrets) |
-| `.env.local` | ❌ No | **Local development** — points at the Docker stack (`localhost:3001`) |
-| `.env.production` | ❌ No | **Production reference** — points at cloud Supabase (gitignored; Vercel uses dashboard vars) |
+| `env.example` | ✅ Yes | Template with all variables (no secrets) |
+| `.env.local` | ❌ No (gitignored) | **Local development** — points to Docker stack |
+| `.env.production` | ❌ No (gitignored) | **Production reference** — Vercel uses dashboard |
 
-> `.env.local` always overrides `.env.production` in Next.js. Keep `.env.local` pointing at the local Docker stack at all times.
+> **Note:** `.env.local` always overrides `.env.production` in Next.js. Keep `.env.local` pointing to the local stack.
+
+### Supabase Values for Local Development
+
+Find these in `supabase/.env.docker` (generated by local-setup.sh):
+
+```bash
+cat supabase/.env.docker
+```
+
+Copy `ANON_KEY` → `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`  
+Copy `SERVICE_ROLE_KEY` → `SUPABASE_SERVICE_ROLE_KEY`  
+Copy `DB_PASSWORD` → `SUPABASE_DB_PASSWORD`
 
 ---
 
-## Migration Workflow
+## Working with the Database
 
-### Local development
+### Applying Migrations
 
-Apply migrations to the local Docker Postgres:
+Migrations are SQL files in `supabase/migrations/` applied in lexical order (timestamps ensure ordering).
+
+**Apply to local database:**
 
 ```bash
 ./supabase/local-setup.sh migrate
 ```
 
-This pipes SQL directly to the Docker container — it never touches production.
-
-### Promote to production
-
-After testing locally, push new migrations to the cloud Supabase project:
+**Create a new migration:**
 
 ```bash
-# One-time setup: authenticate and link to the remote project
-supabase login
-supabase link --project-ref twowzxblypmvywqiegvy
+supabase migration new add_my_table
+# Edit supabase/migrations/<timestamp>_add_my_table.sql
+./supabase/local-setup.sh migrate
+```
 
-# Push pending migrations
+**Push migrations to production:**
+
+```bash
+supabase login
+supabase link --project-ref <your-project-ref>
 supabase db push
 ```
 
-`supabase db push` compares the migration history table on the remote database against `supabase/migrations/` and applies only the new files.
+**Check migration status:**
 
-> ⚠️ **Never run `supabase start`** — it would conflict with the custom Docker Compose containers.
+```bash
+./supabase/local-setup.sh psql
+SELECT id, name, executed_at FROM schema_migrations ORDER BY name;
+```
+
+### Seeding Data
+
+Seed data is in `supabase/seed.sql` and populates the local database after migrations.
+
+**To seed manually:**
+
+```bash
+./supabase/local-setup.sh seed
+```
+
+**Add new seed data:**
+
+```bash
+# Edit supabase/seed.sql
+./supabase/local-setup.sh reset  # ⚠️ Deletes all data
+./supabase/local-setup.sh migrate
+./supabase/local-setup.sh seed
+```
+
+**Reset local database (⚠️ destructive):**
+
+```bash
+./supabase/local-setup.sh reset
+```
+
+This deletes all tables and data. Migrations and seeds are reapplied.
+
+### Exporting Production Schema
+
+Before major schema changes, export the production schema locally for testing:
+
+```bash
+# Authenticate with Supabase
+supabase login
+
+# Link to production project
+supabase link --project-ref <your-project-ref>
+
+# Pull production schema
+supabase db pull
+
+# Apply production schema locally
+./supabase/local-setup.sh migrate
+```
+
+This creates a new migration file with production tables.
+
+### Connecting to the Database
+
+**From the CLI:**
+
+```bash
+./supabase/local-setup.sh psql
+```
+
+**From a GUI (DBeaver, Postico, pgAdmin):**
+
+```
+Host:     localhost
+Port:     5432
+Database: postgres
+User:     postgres
+Password: [SUPABASE_DB_PASSWORD from .env.docker]
+```
+
+**From Node.js:**
+
+```javascript
+const { createClient } = require("@supabase/supabase-js");
+const supabase = createClient(
+  "http://localhost:3001",
+  "eyJ... (ANON_KEY from .env.docker)"
+);
+```
+
+---
+
+## Running the App Locally
+
+### Development Server
+
+```bash
+pnpm dev
+```
+
+- Starts Next.js on http://localhost:3000
+- Hot-reloads on file changes
+- Available at `localhost:3000`
+
+### Production Build
+
+```bash
+pnpm build
+pnpm start
+```
+
+### Testing
+
+```bash
+# Run tests in watch mode (Vitest)
+pnpm test
+
+# Run tests once (CI mode)
+pnpm test:run
+
+# Run tests with UI
+pnpm test:ui
+```
+
+### Linting and Formatting
+
+```bash
+# Check for linting issues (Biome)
+pnpm lint
+
+# Auto-fix linting issues
+pnpm lint --write
+
+# Format code
+pnpm format
+```
+
+---
+
+## Troubleshooting
+
+### Docker Services Won't Start
+
+**Error: "bind: address already in use"**
+
+```bash
+# Check what's using port 3001 (PostgREST) or 5432 (PostgreSQL)
+lsof -i :3001
+lsof -i :5432
+
+# Kill the process
+kill -9 <PID>
+
+# Restart services
+./supabase/local-setup.sh start
+```
+
+**Docker daemon not running:**
+
+- Start Docker Desktop and wait ~30s for it to fully start
+- Run `docker info` to verify
+
+**Containers won't stop:**
+
+```bash
+docker-compose -f supabase/docker-compose.yml down -v
+```
+
+### Environment Variables Not Loaded
+
+- Verify `.env.local` exists: `ls -la .env.local`
+- Check syntax (no spaces around `=`): `KEY=value` ✅, `KEY = value` ❌
+- Restart the Next.js dev server after editing `.env.local`
+
+**To debug which .env is being loaded:**
+
+```bash
+node -e "console.log(process.env.NEXT_PUBLIC_SUPABASE_URL)"
+```
+
+### Cannot Connect to Supabase
+
+- Verify PostgREST is running: `curl http://localhost:3001`
+- Check Docker logs: `./supabase/local-setup.sh logs`
+- Verify `.env.local` has correct URL: `NEXT_PUBLIC_SUPABASE_URL=http://localhost:3001`
+
+### Redis Connection Errors
+
+```bash
+# Check Redis is running
+redis-cli ping
+# Should return: PONG
+
+# Verify connection string
+echo $REDIS_URL
+# Should be: redis://localhost:6379
+
+# Check Docker logs
+./supabase/local-setup.sh logs
+```
+
+### Database Migrations Won't Apply
+
+```bash
+# Check for syntax errors
+./supabase/local-setup.sh psql -f supabase/migrations/<timestamp>_name.sql
+
+# View migration status
+./supabase/local-setup.sh psql
+SELECT * FROM schema_migrations;
+
+# Roll back and re-apply
+./supabase/local-setup.sh reset
+./supabase/local-setup.sh migrate
+```
+
+### Tests Fail Locally but Pass in CI
+
+- Ensure Node.js version matches `.nvmrc`: `node -v`
+- Clear `.next` cache: `rm -rf .next`
+- Reinstall dependencies: `rm -rf node_modules pnpm-lock.yaml && pnpm install`
+- Run full test suite: `pnpm test:run`
+
+### Port 3000 Already in Use
+
+```bash
+# Find what's using port 3000
+lsof -i :3000
+
+# Kill it
+kill -9 <PID>
+
+# Or use a different port
+PORT=3001 pnpm dev
+```
 
 ---
 
 ## Project Structure
 
 ```
-src/
-  app/          # Next.js App Router pages and route handlers
-  components/   # Shared UI components
-  lib/          # Utilities, Supabase client, auth helpers
-supabase/
-  migrations/   # SQL migration files (applied in order)
-  docker-compose.yml
-  local-setup.sh
+.
+├── src/
+│   ├── app/                  # Next.js App Router (pages, layouts, route handlers)
+│   ├── components/           # Shared React components
+│   ├── lib/                  # Utilities (Supabase client, auth, helpers)
+│   └── styles/               # Global CSS and Tailwind config
+├── supabase/
+│   ├── migrations/           # SQL migration files (run in lexical order)
+│   ├── seed.sql              # Seed data for local development
+│   ├── docker-compose.yml    # Docker services (PostgreSQL, PostgREST, Redis)
+│   ├── local-setup.sh        # Script to manage Docker services
+│   └── config.toml           # Supabase local config
+├── docs/                     # Architecture, decisions, guides
+├── env.example               # Environment variables template
+├── package.json              # Dependencies and scripts
+├── tsconfig.json             # TypeScript config
+├── vitest.config.ts          # Test config
+└── README.md                 # This file
 ```
 
 ---
@@ -137,10 +398,164 @@ supabase/
 
 | Command | Description |
 |---|---|
-| `pnpm dev` | Start Next.js dev server |
-| `pnpm build` | Production build |
-| `pnpm test` | Run tests (Vitest) |
-| `pnpm lint` | Run Biome linter |
-| `./supabase/local-setup.sh start` | Start local Supabase Docker stack |
+| `pnpm dev` | Start Next.js dev server (hot-reload) |
+| `pnpm build` | Build for production |
+| `pnpm start` | Run production server |
+| `pnpm test` | Run tests in watch mode (Vitest) |
+| `pnpm test:run` | Run tests once (CI mode) |
+| `pnpm test:ui` | Run tests with Vitest UI |
+| `pnpm lint` | Check linting (Biome) |
+| `pnpm lint --write` | Auto-fix linting issues |
+| `pnpm format` | Format code |
+| `./supabase/local-setup.sh start` | Start Docker containers |
+| `./supabase/local-setup.sh stop` | Stop Docker containers |
 | `./supabase/local-setup.sh migrate` | Apply database migrations |
-| `./supabase/local-setup.sh reset` | ⚠️ Reset local database (deletes all data) |
+| `./supabase/local-setup.sh seed` | Populate seed data |
+| `./supabase/local-setup.sh reset` | Reset database (⚠️ deletes all data) |
+| `./supabase/local-setup.sh logs` | View service logs |
+| `./supabase/local-setup.sh psql` | Connect to PostgreSQL CLI |
+| `./supabase/local-setup.sh status` | Check service health |
+
+---
+
+## Migration Workflow
+
+### Local Development
+
+1. Create a migration file: `supabase migration new add_users_table`
+2. Write SQL in the generated file
+3. Test locally: `./supabase/local-setup.sh migrate`
+4. Verify with: `./supabase/local-setup.sh psql`
+5. Commit to Git
+
+### Deploy to Staging/Production
+
+1. Ensure all local migrations are committed
+2. Authenticate: `supabase login`
+3. Link to remote project: `supabase link --project-ref <ref>`
+4. Push migrations: `supabase db push`
+5. Verify in Supabase dashboard
+
+### Reverting a Migration
+
+⚠️ **Migrations are immutable** — write a new migration to undo changes:
+
+```bash
+supabase migration new revert_users_table
+```
+
+Then in the file:
+
+```sql
+-- Remove users table (created in migration 20250827_add_users_table.sql)
+DROP TABLE IF EXISTS users CASCADE;
+```
+
+---
+
+## Common Development Tasks
+
+### Adding a New Database Table
+
+1. Create a migration: `supabase migration new add_posts_table`
+2. Write SQL:
+   ```sql
+   CREATE TABLE posts (
+     id BIGSERIAL PRIMARY KEY,
+     family_id UUID REFERENCES families(id) ON DELETE CASCADE,
+     title TEXT NOT NULL,
+     content TEXT,
+     created_at TIMESTAMP DEFAULT now()
+   );
+
+   ALTER TABLE posts ENABLE ROW LEVEL SECURITY;
+   CREATE POLICY "Users can read posts in their family" ON posts
+     FOR SELECT USING (family_id IN (SELECT family_id FROM family_members WHERE user_id = auth.uid()));
+   ```
+3. Apply: `./supabase/local-setup.sh migrate`
+4. Test: `./supabase/local-setup.sh psql` → `SELECT * FROM posts;`
+
+### Adding a New Environment Variable
+
+1. Add to `env.example`: `MY_NEW_VAR=`
+2. Update `.env.local`: `MY_NEW_VAR=value`
+3. Use in code:
+   ```javascript
+   const myVar = process.env.MY_NEW_VAR;
+   ```
+4. For Next.js client-side, prefix with `NEXT_PUBLIC_`:
+   ```javascript
+   const myVar = process.env.NEXT_PUBLIC_MY_VAR;
+   ```
+
+### Running a Single Test File
+
+```bash
+pnpm test src/lib/auth.test.ts
+```
+
+### Creating a Feature Branch
+
+```bash
+git checkout develop
+git pull
+git checkout -b feature/my-feature-name
+# Make changes, commit, push
+git push --set-upstream origin feature/my-feature-name
+```
+
+### Debugging Database Issues
+
+```bash
+# Connect to the database
+./supabase/local-setup.sh psql
+
+# Check table structure
+\dt                    # List tables
+\d table_name          # Describe table
+\l                     # List databases
+
+# View data
+SELECT * FROM table_name LIMIT 10;
+
+# Check RLS policies
+SELECT * FROM pg_policies WHERE tablename = 'table_name';
+```
+
+---
+
+## Resources & Documentation
+
+- **[Supabase Docs](https://supabase.com/docs)** — Auth, Postgres, Storage, Realtime
+- **[Next.js Docs](https://nextjs.org/docs)** — App Router, Server Components, API Routes
+- **[PostgreSQL Docs](https://www.postgresql.org/docs/)** — SQL, Functions, Extensions
+- **[Tailwind CSS](https://tailwindcss.com/docs)** — Utility-first CSS framework
+- **[React Documentation](https://react.dev)** — React 19 features
+- **[Zod](https://zod.dev)** — TypeScript-first schema validation
+- **[Radix UI](https://radix-ui.com)** — Headless UI components
+- **[Vitest](https://vitest.dev)** — Unit testing framework
+- **[Biome](https://biomejs.dev)** — Linter and formatter
+
+---
+
+## Getting Help
+
+- **Issues** — Open a [GitHub issue](https://github.com/tack0sim/family-ai-assist/issues)
+- **Discussions** — Ask questions in [GitHub Discussions](https://github.com/tack0sim/family-ai-assist/discussions)
+- **Slack** — Reach out on project Slack channel
+- **Documentation** — Check [DOCKER_DEV.md](./DOCKER_DEV.md) and [CONTEXT.md](./CONTEXT.md)
+
+---
+
+## Architecture
+
+For architecture decisions and system design details, see:
+
+- **[docs/adr/](./docs/adr/)** — Architecture Decision Records
+- **[CONTEXT.md](./CONTEXT.md)** — Project context and conventions
+- **[DOCKER_DEV.md](./DOCKER_DEV.md)** — Docker setup details
+
+---
+
+
+**Happy coding! 🚀**
