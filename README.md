@@ -26,7 +26,7 @@ pnpm install
 cp env.example .env.local
 ```
 
-Fill in `.env.local` — see [Environment Variables](#environment-variables) below for details.
+Fill in `.env.local` with the local Docker stack values. The keys (`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`) come from `supabase/.env.docker`. See [Environment Variables](#environment-variables) for the full reference.
 
 ### 3. Start the local Supabase stack
 
@@ -80,10 +80,41 @@ All variables are documented in [`env.example`](./env.example). Copy it and fill
 | File | Committed | Purpose |
 |---|---|---|
 | `env.example` | ✅ Yes | Template showing all required variables (no secrets) |
-| `.env.local` | ❌ No | Local development overrides |
-| `.env.production` | ❌ No | Production values (managed in deployment platform, e.g. Vercel) |
+| `.env.local` | ❌ No | **Local development** — points at the Docker stack (`localhost:3001`) |
+| `.env.production` | ❌ No | **Production reference** — points at cloud Supabase (gitignored; Vercel uses dashboard vars) |
 
-> **Never commit `.env.local` or `.env.production`.** They are gitignored. Use your deployment platform's secret manager (e.g. Vercel Environment Variables) for production secrets.
+> `.env.local` always overrides `.env.production` in Next.js. Keep `.env.local` pointing at the local Docker stack at all times.
+
+---
+
+## Migration Workflow
+
+### Local development
+
+Apply migrations to the local Docker Postgres:
+
+```bash
+./supabase/local-setup.sh migrate
+```
+
+This pipes SQL directly to the Docker container — it never touches production.
+
+### Promote to production
+
+After testing locally, push new migrations to the cloud Supabase project:
+
+```bash
+# One-time setup: authenticate and link to the remote project
+supabase login
+supabase link --project-ref twowzxblypmvywqiegvy
+
+# Push pending migrations
+supabase db push
+```
+
+`supabase db push` compares the migration history table on the remote database against `supabase/migrations/` and applies only the new files.
+
+> ⚠️ **Never run `supabase start`** — it would conflict with the custom Docker Compose containers.
 
 ---
 

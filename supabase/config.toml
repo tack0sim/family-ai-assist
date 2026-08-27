@@ -1,0 +1,39 @@
+# Supabase CLI project configuration
+# https://supabase.com/docs/guides/local-development/cli/config
+#
+# This file is used by the Supabase CLI to:
+#   - Locate the migrations directory for `supabase db push`
+#   - Link to the remote project for production deployments
+#
+# Local development uses the custom Docker Compose stack in this directory.
+# Do NOT run `supabase start` — it would conflict with the existing containers.
+
+project_id = "twowzxblypmvywqiegvy"
+
+[api]
+enabled = true
+port = 3001
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 5432
+major_version = 16
+
+[auth]
+enabled = true
+port = 9999
+site_url = "http://localhost:3000"
+jwt_expiry = 3600
+enable_signup = true
+
+[auth.external.google]
+enabled = true
+client_id = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID)"
+secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_SECRET)"
+skip_nonce_check = false
+
+[storage]
+enabled = true
+port = 5000
