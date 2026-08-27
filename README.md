@@ -13,6 +13,7 @@ A privacy-first platform for families to coordinate schedules, communicate via a
 - **Node.js** 18+ (see [`.nvmrc`](.nvmrc) for exact version)
 - **pnpm** (install with `npm install -g pnpm`)
 - **Docker Desktop** running (for local Supabase and Redis)
+- **Supabase CLI** (optional; install with `npm install -g supabase` if you need to push migrations to production)
 
 ### 1. Clone and install
 
@@ -106,7 +107,7 @@ cat supabase/.env.docker
 ```
 
 Copy `ANON_KEY` → `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`  
-Copy `SERVICE_ROLE_KEY` → `SUPABASE_SERVICE_ROLE_KEY`  
+Copy `SERVICE_KEY` → `SUPABASE_SERVICE_ROLE_KEY`  
 Copy `DB_PASSWORD` → `SUPABASE_DB_PASSWORD`
 
 ---
@@ -148,21 +149,21 @@ SELECT id, name, executed_at FROM schema_migrations ORDER BY name;
 
 ### Seeding Data
 
-Seed data is in `supabase/seed.sql` and populates the local database after migrations.
+Seed data is in `supabase/seed.sql` and can be applied manually after migrations.
 
-**To seed manually:**
+**To apply seed data:**
 
 ```bash
-./supabase/local-setup.sh seed
+# Connect to PostgreSQL and pipe the seed file
+./supabase/local-setup.sh psql -f supabase/seed.sql
 ```
 
 **Add new seed data:**
 
 ```bash
-# Edit supabase/seed.sql
-./supabase/local-setup.sh reset  # ⚠️ Deletes all data
-./supabase/local-setup.sh migrate
-./supabase/local-setup.sh seed
+# Edit supabase/seed.sql with new INSERT statements
+# Then apply
+./supabase/local-setup.sh psql -f supabase/seed.sql
 ```
 
 **Reset local database (⚠️ destructive):**
@@ -171,7 +172,12 @@ Seed data is in `supabase/seed.sql` and populates the local database after migra
 ./supabase/local-setup.sh reset
 ```
 
-This deletes all tables and data. Migrations and seeds are reapplied.
+This deletes all tables and data. Migrations are reapplied. To restore seed data after reset:
+
+```bash
+./supabase/local-setup.sh migrate
+./supabase/local-setup.sh psql -f supabase/seed.sql
+```
 
 ### Exporting Production Schema
 
@@ -410,11 +416,10 @@ PORT=3001 pnpm dev
 | `./supabase/local-setup.sh start` | Start Docker containers |
 | `./supabase/local-setup.sh stop` | Stop Docker containers |
 | `./supabase/local-setup.sh migrate` | Apply database migrations |
-| `./supabase/local-setup.sh seed` | Populate seed data |
 | `./supabase/local-setup.sh reset` | Reset database (⚠️ deletes all data) |
 | `./supabase/local-setup.sh logs` | View service logs |
 | `./supabase/local-setup.sh psql` | Connect to PostgreSQL CLI |
-| `./supabase/local-setup.sh status` | Check service health |
+| `./supabase/local-setup.sh info` | Show service information |
 
 ---
 
