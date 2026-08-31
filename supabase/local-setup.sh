@@ -56,11 +56,16 @@ stop() {
 # Check health of all services
 check_health() {
     echo -e "${YELLOW}Checking service health...${NC}"
-    local services=("postgres" "supabase_rest" "supabase_auth" "supabase_realtime" "supabase_storage" "supabase_meta" "redis")
+    local services=("supabase_db" "supabase_rest" "supabase_auth" "supabase_envoy" "supabase_redis")
     
     for service in "${services[@]}"; do
         if docker ps | grep -q "$service"; then
-            echo -e "${GREEN}✓ $service is running${NC}"
+            local health=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}' "$service" 2>/dev/null)
+            if [ "$health" = "healthy" ] || [ "$health" = "no-healthcheck" ]; then
+                echo -e "${GREEN}✓ $service is running${NC}"
+            else
+                echo -e "${YELLOW}⚠ $service is $health${NC}"
+            fi
         else
             echo -e "${RED}✗ $service is not running${NC}"
         fi
@@ -76,7 +81,7 @@ migrate() {
     for migration_file in "$SCRIPT_DIR/migrations"/*.sql; do
         if [ -f "$migration_file" ]; then
             echo -e "${YELLOW}Applying: $(basename "$migration_file")${NC}"
-            if ! docker exec -i supabase_postgres psql -U postgres -d "${POSTGRES_DB}" -f "/dev/stdin" < "$migration_file"; then
+            if ! docker exec -i supabase_db psql -U postgres -d "${POSTGRES_DB}" -f "/dev/stdin" < "$migration_file"; then
                 echo -e "${RED}Failed to apply $(basename "$migration_file")${NC}"
                 failed=1
             fi
@@ -100,7 +105,7 @@ seed() {
         return 1
     fi
     
-    if ! docker exec -i supabase_postgres psql -U postgres -d "${POSTGRES_DB}" -f "/dev/stdin" < "$SCRIPT_DIR/seed.sql"; then
+    if ! docker exec -i supabase_db psql -U postgres -d "${POSTGRES_DB}" -f "/dev/stdin" < "$SCRIPT_DIR/seed.sql"; then
         echo -e "${RED}Failed to apply seed data${NC}"
         return 1
     fi
@@ -133,19 +138,25 @@ logs() {
 
 # Exec into postgres
 psql_exec() {
-    docker exec -it supabase_postgres psql -U postgres -d "${POSTGRES_DB}" "$@"
+    docker exec -it supabase_db psql -U postgres -d "${POSTGRES_DB}" "$@"
 }
 
 # Show environment info
 info() {
     echo -e "${GREEN}Local Supabase Configuration${NC}"
     echo "================================"
-    echo "API URL: http://localhost:3001"
-    echo "Auth URL: http://localhost:9999"
-    echo "Realtime URL: ws://localhost:4000"
-    echo "Storage URL: http://localhost:5000"
-    echo "Postgres: localhost:5432 (postgres/postgres)"
-    echo "Redis: localhost:6379"
+    echo "Gateway URL: http://localhost:8000 (main API endpoint)"
+    echo "  Auth API: http://localhost:8000/auth/v1/*"
+    echo "  REST API: http://localhost:8000/rest/v1/*"
+    echo ""
+    echo "Direct Service Access (internal):"
+    echo "  GoTrue (auth): http://localhost:9999"
+    echo "  PostgREST: http://localhost:3000 (not exposed)"
+    echo "  Postgres: localhost:5432 (postgres/postgres)"
+    echo "  Redis: localhost:6379"
+    echo ""
+    echo "Next.js Configuration:"
+    echo "  NEXT_PUBLIC_SUPABASE_URL=http://localhost:8000"
     echo ""
     echo -e "${GREEN}Services Status:${NC}"
     check_health
