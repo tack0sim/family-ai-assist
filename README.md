@@ -1,4 +1,10 @@
-# Family AI Assistant
+# Family Assist
+
+[![Version: v0.1.0-beta](https://img.shields.io/badge/version-v0.1.0--beta-blue)](./package.json)
+[![Status: Beta](https://img.shields.io/badge/status-beta-orange)]()
+[![Node.js: 24+](https://img.shields.io/badge/node.js-24+-green)](./.nvmrc)
+[![TypeScript](https://img.shields.io/badge/typescript-strict-blue)]()
+[![Next.js 16](https://img.shields.io/badge/next.js-16-black)]()
 
 A privacy-first platform for families to coordinate schedules, communicate via an AI assistant, and share files in a secure shared space.
 

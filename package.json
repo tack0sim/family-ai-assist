@@ -32,7 +32,7 @@
     "ultracite": "7.8.3",
     "vitest": "^4.1.9"
   },
-  "name": "family-ai-assist",
+  "name": "family-assist",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -46,7 +46,7 @@
     "fix": "ultracite fix",
     "email:dev": "email dev"
   },
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-beta",
   "private": true,
   "packageManager": "pnpm@11.5.0",
   "engines": {
