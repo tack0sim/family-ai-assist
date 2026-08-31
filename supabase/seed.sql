@@ -28,14 +28,14 @@ INSERT INTO "auth"."users" (
   "role",
   "email",
   "encrypted_password",
-  "confirmed_at",
+  "email_confirmed_at",
   "raw_app_meta_data",
   "raw_user_meta_data",
   "created_at",
   "updated_at",
   "confirmation_token",
   "email_change",
-  "email_change_token"
+  "email_change_token_new"
 ) VALUES
   (
     'b4150a47-a677-4967-9f88-7f64efa7dc82',
@@ -44,7 +44,7 @@ INSERT INTO "auth"."users" (
     'authenticated',
     'admin@example.com',
     crypt('password123', gen_salt('bf')),
-    now(),
+    '2026-07-15 15:28:20.258156+00',
     '{}'::jsonb,
     '{"display_name":"Admin User"}'::jsonb,
     '2026-07-15 15:28:20.258156+00',
@@ -60,7 +60,7 @@ INSERT INTO "auth"."users" (
     'authenticated',
     'test@example.com',
     crypt('password123', gen_salt('bf')),
-    now(),
+    '2026-07-27 16:29:36.511249+00',
     '{}'::jsonb,
     '{"display_name":"Test User"}'::jsonb,
     '2026-07-27 16:29:36.511249+00',
