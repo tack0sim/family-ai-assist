@@ -79,64 +79,58 @@ export function ProfileTab({ initialDisplayName }: ProfileTabProps) {
   };
 
   return (
-    <div className="flex flex-col gap-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Profile</CardTitle>
-          <CardDescription>Manage your profile information</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit}>
-            <FieldGroup>
+    <Card className="w-full max-w-2xl">
+      <CardHeader>
+        <CardTitle>Profile</CardTitle>
+        <CardDescription>Manage your profile information</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit}>
+          <FieldGroup>
+            <Field className="w-full max-w-sm">
+              <FieldLabel htmlFor="displayName">Display Name</FieldLabel>
+              <Input
+                disabled={loading}
+                id="displayName"
+                name="displayName"
+                onChange={handleDisplayNameChange}
+                placeholder="Enter your display name"
+                required
+                type="text"
+                value={displayName}
+              />
+              <FieldDescription>
+                How your name appears to family members
+              </FieldDescription>
+            </Field>
+
+            {error && (
               <Field>
-                <FieldLabel htmlFor="displayName">Display Name</FieldLabel>
-                <Input
-                  disabled={loading}
-                  id="displayName"
-                  name="displayName"
-                  onChange={handleDisplayNameChange}
-                  placeholder="Enter your display name"
-                  required
-                  type="text"
-                  value={displayName}
-                />
-                <FieldDescription>
-                  How your name appears to family members
-                </FieldDescription>
+                <p className="text-red-600 text-sm">{error}</p>
               </Field>
+            )}
 
-              {error && (
-                <Field>
-                  <p className="text-red-600 text-sm">{error}</p>
-                </Field>
-              )}
-
-              {successMessage && (
-                <Field>
-                  <p className="text-green-600 text-sm">{successMessage}</p>
-                </Field>
-              )}
-
+            {successMessage && (
               <Field>
-                <Button
-                  className="w-full"
-                  disabled={loading || !hasChanged}
-                  type="submit"
-                >
-                  {loading ? (
-                    <>
-                      <Spinner className="mr-2" />
-                      Saving...
-                    </>
-                  ) : (
-                    "Save Changes"
-                  )}
-                </Button>
+                <p className="text-green-600 text-sm">{successMessage}</p>
               </Field>
-            </FieldGroup>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+            )}
+
+            <Field className="w-fit">
+              <Button disabled={loading || !hasChanged} size="sm" type="submit">
+                {loading ? (
+                  <>
+                    <Spinner className="mr-2" />
+                    Saving...
+                  </>
+                ) : (
+                  "Save Changes"
+                )}
+              </Button>
+            </Field>
+          </FieldGroup>
+        </form>
+      </CardContent>
+    </Card>
   );
 }

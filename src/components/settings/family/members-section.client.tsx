@@ -105,7 +105,7 @@ export function MembersSection({
   const isEmptyState = activeMembers.length === 0;
 
   return (
-    <Card>
+    <Card className="w-full max-w-2xl">
       <CardHeader>
         <CardTitle>Family Members</CardTitle>
         <CardDescription>Manage family members and their roles</CardDescription>
@@ -125,7 +125,7 @@ export function MembersSection({
           <div className="space-y-3">
             {activeMembers.map((member) => (
               <div
-                className="flex items-center justify-between gap-4 rounded-lg border border-gray-200 p-4"
+                className="flex flex-col items-start justify-between gap-4 rounded-lg border border-gray-200 p-4 lg:flex-row lg:items-center"
                 key={member.id}
               >
                 <div className="flex flex-1 items-center gap-3">
@@ -150,51 +150,52 @@ export function MembersSection({
                     </p>
                   </div>
                 </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-full bg-gray-100 px-3 py-1 font-medium text-gray-700 text-xs">
+                      {member.role === "admin" ? "Admin" : "Member"}
+                    </span>
 
-                <div className="flex items-center gap-2">
-                  <span className="rounded-full bg-gray-100 px-3 py-1 font-medium text-gray-700 text-sm">
-                    {member.role === "admin" ? "Admin" : "Member"}
-                  </span>
-
-                  {currentUserRole === "admin" && (
-                    <div className="flex gap-2">
-                      <Button
-                        disabled={actionLoading === member.user_id}
-                        onClick={() =>
-                          setConfirmDialog({
-                            open: true,
-                            type:
-                              member.role === "admin" ? "demote" : "promote",
-                            memberId: member.user_id,
-                            memberName: member.display_name || "this member",
-                          })
-                        }
-                        size="sm"
-                        variant="outline"
-                      >
-                        {member.role === "admin" ? "Demote" : "Promote"}
-                      </Button>
-                      <Button
-                        disabled={actionLoading === member.user_id}
-                        onClick={() =>
-                          setConfirmDialog({
-                            open: true,
-                            type: "remove",
-                            memberId: member.user_id,
-                            memberName: member.display_name || "this member",
-                          })
-                        }
-                        size="sm"
-                        variant="destructive"
-                      >
-                        {actionLoading === member.id ? (
-                          <Spinner className="h-4 w-4" />
-                        ) : (
-                          "Remove"
-                        )}
-                      </Button>
-                    </div>
-                  )}
+                    {currentUserRole === "admin" && (
+                      <div className="flex gap-2">
+                        <Button
+                          disabled={actionLoading === member.user_id}
+                          onClick={() =>
+                            setConfirmDialog({
+                              open: true,
+                              type:
+                                member.role === "admin" ? "demote" : "promote",
+                              memberId: member.user_id,
+                              memberName: member.display_name || "this member",
+                            })
+                          }
+                          size="sm"
+                          variant="outline"
+                        >
+                          {member.role === "admin" ? "Demote" : "Promote"}
+                        </Button>
+                        <Button
+                          disabled={actionLoading === member.user_id}
+                          onClick={() =>
+                            setConfirmDialog({
+                              open: true,
+                              type: "remove",
+                              memberId: member.user_id,
+                              memberName: member.display_name || "this member",
+                            })
+                          }
+                          size="sm"
+                          variant="destructive"
+                        >
+                          {actionLoading === member.user_id ? (
+                            <Spinner className="h-4 w-4" />
+                          ) : (
+                            "Remove"
+                          )}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}

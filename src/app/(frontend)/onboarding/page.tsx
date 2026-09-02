@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { CreateFamilyForm } from "@/components/onboarding/create-family-form.client";
 import { InvitationHandler } from "@/components/onboarding/invitation-handler.client";
-import { JoinFamilyForm } from "@/components/onboarding/join-family-form.client";
 import { checkUserFamilyContext } from "@/lib/supabase/check-family";
 import { createClient } from "@/lib/supabase/server";
 
@@ -43,7 +42,8 @@ export default async function OnboardingPage() {
           <CreateFamilyForm />
 
           {/* Join Family Section */}
-          <div className="relative">
+          {/* Currently disabled as the join family via invitation code feature is not planned */}
+          {/* <div className="relative">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-gray-200 border-t" />
             </div>
@@ -52,7 +52,7 @@ export default async function OnboardingPage() {
             </div>
           </div>
 
-          <JoinFamilyForm />
+          <JoinFamilyForm /> */}
         </div>
       </div>
     </div>

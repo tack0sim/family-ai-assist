@@ -122,8 +122,8 @@ export function CreateFamilyForm({
                 </Field>
               )}
 
-              <Field>
-                <Button className="w-full" disabled={loading} type="submit">
+              <Field className="w-fit">
+                <Button disabled={loading} type="submit">
                   {loading ? (
                     <>
                       <Spinner className="mr-2" />

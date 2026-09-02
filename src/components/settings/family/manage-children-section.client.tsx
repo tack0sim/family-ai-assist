@@ -134,7 +134,7 @@ export function ManageChildrenSection({
 
   return (
     <>
-      <Card>
+      <Card className="w-full max-w-2xl">
         <CardHeader>
           <CardTitle>Manage Children</CardTitle>
           <CardDescription>

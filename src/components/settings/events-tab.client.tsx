@@ -1,7 +1,6 @@
 "use client";
 
 import { Card, CardContent } from "@/components/ui/card";
-import { Spinner } from "@/components/ui/spinner";
 import type { EventTag } from "@/lib/schemas/settings";
 import { EventTagsSection } from "./family/event-tags-section.client";
 
@@ -19,7 +18,7 @@ export function EventsTab({
   // Only admins can manage event tags
   if (userRole !== "admin") {
     return (
-      <Card>
+      <Card className="w-full max-w-2xl">
         <CardContent className="flex items-center justify-center py-8">
           <p className="text-gray-600">
             Only family admins can manage event tags
@@ -30,8 +29,6 @@ export function EventsTab({
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <EventTagsSection familyId={familyId} initialTags={initialEventTags} />
-    </div>
+    <EventTagsSection familyId={familyId} initialTags={initialEventTags} />
   );
 }

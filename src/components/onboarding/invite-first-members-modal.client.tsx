@@ -138,7 +138,10 @@ export function InviteFirstMembersModal({
               {/* Email rows */}
               <div className="space-y-3">
                 {emails.map((email, index) => (
-                  <div className="flex gap-2" key={index}>
+                  <div
+                    className="flex items-end justify-between gap-2"
+                    key={index}
+                  >
                     <div className="flex-1">
                       <Field>
                         <FieldLabel htmlFor={`email-${index}`}>
@@ -158,7 +161,7 @@ export function InviteFirstMembersModal({
                     {emails.length > 1 && (
                       <button
                         aria-label="Remove email"
-                        className="mt-7 p-2 text-gray-400 hover:text-gray-600 disabled:opacity-50"
+                        className="p-2 text-gray-400 hover:text-gray-600 disabled:opacity-50"
                         disabled={loading}
                         onClick={() => removeEmailRow(index)}
                         type="button"
@@ -171,15 +174,16 @@ export function InviteFirstMembersModal({
               </div>
 
               {/* Add another email button */}
-              <button
+              <Button
                 className="flex items-center gap-1 text-blue-600 text-sm hover:text-blue-700 disabled:opacity-50"
                 disabled={loading}
                 onClick={addEmailRow}
                 type="button"
+                variant="ghost"
               >
                 <Plus className="h-4 w-4" />
                 Add another email
-              </button>
+              </Button>
 
               {/* Error message */}
               {error && (

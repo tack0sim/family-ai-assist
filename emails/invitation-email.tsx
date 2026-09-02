@@ -39,7 +39,7 @@ export default function InvitationEmail({
     >
       <Html>
         <Head />
-        <Preview>You're invited to join {familyName} on Family AI</Preview>
+        <Preview>You're invited to join {familyName} on Family Assist</Preview>
         <Body className="bg-gray-100 font-sans">
           <Container className="mx-auto my-16 rounded-lg bg-white p-0 pb-12">
             <Section className="px-12">
@@ -49,13 +49,13 @@ export default function InvitationEmail({
               <Hr className="my-4 border border-[#e5e5e5]" />
 
               <Text className="my-4 text-base">
-                {invitedByName} has invited you to join the{" "}
-                <strong>{familyName}</strong> family on Family AI.
+                {invitedByName} has invited you to join{" "}
+                <strong>{familyName}</strong> on Family Assist.
               </Text>
 
               <Text className="my-4 text-base">
-                Family AI helps families stay connected, manage schedules, and
-                collaborate on important tasks.
+                Family Assist helps families stay connected, manage schedules,
+                and collaborate on important tasks.
               </Text>
 
               <Section className="my-8 text-center">

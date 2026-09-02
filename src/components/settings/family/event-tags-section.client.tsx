@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, Trash2, X } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { useState, useTransition } from "react";
 import { createEventTag, deleteEventTag, updateEventTag } from "@/actions";
 import { Button } from "@/components/ui/button";
@@ -174,7 +174,7 @@ export function EventTagsSection({
 
   return (
     <>
-      <Card>
+      <Card className="w-full max-w-2xl">
         <CardHeader>
           <CardTitle>Event Tags</CardTitle>
           <CardDescription>

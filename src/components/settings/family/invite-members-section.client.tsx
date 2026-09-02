@@ -91,7 +91,7 @@ export function InviteMembersSection({ familyId }: InviteMembersSectionProps) {
   const filledEmailsCount = emails.filter((e) => e.trim().length > 0).length;
 
   return (
-    <Card>
+    <Card className="w-full max-w-2xl">
       <CardHeader>
         <CardTitle>Invite Family Members</CardTitle>
         <CardDescription>
@@ -102,9 +102,12 @@ export function InviteMembersSection({ familyId }: InviteMembersSectionProps) {
         <form onSubmit={handleSubmit}>
           <div className="space-y-4">
             {/* Email rows */}
-            <div className="space-y-3">
+            <div className="w-full max-w-sm space-y-1">
               {emails.map((email, index) => (
-                <div className="flex gap-2" key={index}>
+                <div
+                  className="flex items-end justify-center gap-2"
+                  key={index}
+                >
                   <div className="flex-1">
                     <Field>
                       <FieldLabel htmlFor={`email-${index}`}>
@@ -163,8 +166,8 @@ export function InviteMembersSection({ familyId }: InviteMembersSectionProps) {
 
             {/* Submit button */}
             <Button
-              className="w-full"
               disabled={loading || filledEmailsCount === 0}
+              size="sm"
               type="submit"
             >
               {loading ? (
@@ -173,7 +176,7 @@ export function InviteMembersSection({ familyId }: InviteMembersSectionProps) {
                   Sending...
                 </>
               ) : (
-                `Send Invitation${filledEmailsCount === 1 ? "" : "s"}`
+                `Send Invitation${emails.length > 1 ? "s" : ""}`
               )}
             </Button>
           </div>

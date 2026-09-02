@@ -91,7 +91,7 @@ export function PendingInvitationsSection({
   const isEmptyState = pendingInvitations.length === 0;
 
   return (
-    <Card>
+    <Card className="w-full max-w-2xl">
       <CardHeader>
         <CardTitle>Pending Invitations</CardTitle>
         <CardDescription>

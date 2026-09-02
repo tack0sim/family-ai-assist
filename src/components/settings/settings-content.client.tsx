@@ -9,9 +9,9 @@ import { FamilyTab } from "./family-tab.client";
 import { ProfileTab } from "./profile-tab.client";
 
 const TABS = [
-  { id: "profile", label: "Profile" },
   { id: "family", label: "Family" },
   { id: "events", label: "Events" },
+  { id: "profile", label: "Profile" },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -26,11 +26,11 @@ export function SettingsContent({
   initialDisplayName: string;
 }) {
   const searchParams = useSearchParams();
-  const currentTab = (searchParams.get("tab") || "profile") as TabId;
+  const currentTab = (searchParams.get("tab") || "family") as TabId;
   const { familyId, members, invitations, userRole } = familyData;
 
   const isValidTab = TABS.some((tab) => tab.id === currentTab);
-  const activeTab = isValidTab ? currentTab : "profile";
+  const activeTab = isValidTab ? currentTab : "family";
 
   const handleTabChange = (tabId: TabId) => {
     const params = new URLSearchParams(searchParams);
@@ -60,9 +60,6 @@ export function SettingsContent({
 
       {/* Tab Content */}
       <div>
-        {activeTab === "profile" && (
-          <ProfileTab initialDisplayName={initialDisplayName} />
-        )}
         {activeTab === "family" && (
           <FamilyTab
             familyId={familyId}
@@ -77,6 +74,9 @@ export function SettingsContent({
             initialEventTags={initialEventTags}
             userRole={userRole}
           />
+        )}
+        {activeTab === "profile" && (
+          <ProfileTab initialDisplayName={initialDisplayName} />
         )}
       </div>
     </div>
