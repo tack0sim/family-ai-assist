@@ -62,15 +62,15 @@ export function EventCard({ event, isAllDay = false }: EventCardProps) {
 
   return (
     <div
-      className={`rounded-md border p-2 ${colors.bg} ${colors.border} border-l-4`}
+      className={`rounded-md border p-2 ${colors.bg} ${colors.border} h-full truncate border-l-4`}
     >
-      <div className="mb-1 flex items-center justify-between gap-2">
-        <h3 className={`truncate font-semibold text-sm ${colors.text}`}>
-          {event.event.title}
-        </h3>
-        <Badge className="flex-shrink-0 text-xs" variant={variant}>
+      <div className="mb-1 flex flex-col items-start justify-between gap-2 truncate">
+        <Badge className="shrink-0 text-xs" variant={variant}>
           {event.event.type}
         </Badge>
+        <h3 className={`font-semibold text-sm ${colors.text}`}>
+          {event.event.title}
+        </h3>
       </div>
 
       {!isAllDay && (
@@ -87,15 +87,19 @@ export function EventCard({ event, isAllDay = false }: EventCardProps) {
 
       {event.assignees && event.assignees.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1">
-          {event.assignees.slice(0, 2).map((assignee) => (
-            <Badge
-              className="text-xs"
-              key={assignee.profile_id}
-              variant="outline"
-            >
-              👤
-            </Badge>
-          ))}
+          {event.assignees.slice(0, 2).map((assignee) => {
+            const displayName = assignee.profiles?.display_name || "Unknown";
+            const firstName = displayName.split(" ")[0];
+            return (
+              <Badge
+                className="text-xs"
+                key={assignee.profile_id}
+                variant="outline"
+              >
+                {firstName}
+              </Badge>
+            );
+          })}
           {event.assignees.length > 2 && (
             <Badge className="text-xs" variant="outline">
               +{event.assignees.length - 2}

@@ -1696,7 +1696,12 @@ export async function getEvents(familyId: string, query: unknown) {
     const { data: assignees } = eventIds.length
       ? await supabase
           .from("event_assignees")
-          .select("*")
+          .select(`
+            id,
+            event_id,
+            profile_id,
+            profiles(display_name)
+          `)
           .in("event_id", eventIds)
       : { data: [] };
 

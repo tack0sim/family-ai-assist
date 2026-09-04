@@ -112,7 +112,7 @@ export function TimeSlot({
             const endDate = new Date(event.event.end_at);
             const durationMinutes =
               (endDate.getTime() - startDate.getTime()) / 60_000;
-            const slotHeightRem = 3.75; // 60px = 3.75rem
+            const slotHeightRem = 3.37;
             const eventHeightRem = (durationMinutes / 30) * slotHeightRem;
 
             return (

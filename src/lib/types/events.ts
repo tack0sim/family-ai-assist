@@ -23,7 +23,14 @@ export interface Event {
  * Event with associated assignees and tags
  */
 export interface EventWithDetails {
-  assignees?: Array<{ id: string; event_id: string; profile_id: string }>;
+  assignees?: Array<{
+    id: string;
+    event_id: string;
+    profile_id: string;
+    profiles?: {
+      display_name?: string;
+    };
+  }>;
   event: Event;
   tags?: Array<{ id: string; event_id: string; tag_id: string }>;
 }
