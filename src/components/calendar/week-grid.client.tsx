@@ -4,9 +4,11 @@ import { useCallback, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { useCalendar } from "@/hooks/use-calendar";
+import { useResponsiveDays } from "@/hooks/use-responsive-days";
 import type { CreateEventFormData } from "@/lib/schemas/events";
 import type { EventWithDetails } from "@/lib/types/events";
 import type { FamilyMember } from "@/lib/types/settings";
+import { cn } from "@/lib/utils";
 import { formatDateTimeLocal } from "@/lib/utils/format-datetime-local";
 import { Container } from "../layout/container";
 import { Section } from "../layout/section";
@@ -27,6 +29,7 @@ export function WeekGrid({
 }: WeekGridProps) {
   const { state, setLoading, setEvents } = useCalendar();
   const { currentWeekStart, events, loading, error } = state;
+  const { breakpoint, visibleDays, dayWidthClass } = useResponsiveDays();
 
   const [formOpen, setFormOpen] = useState(false);
   const [initialFormData, setInitialFormData] = useState<
@@ -96,6 +99,9 @@ export function WeekGrid({
     );
   }
 
+  // Generate all 7 days of the week
+  // Note: All 7 days are always rendered. On mobile/tablet, days beyond the
+  // visible count (e.g., Sat/Sun on tablet) are scrollable off-screen.
   const days = Array.from({ length: 7 }, (_, i) => {
     const date = new Date(currentWeekStart);
     date.setDate(date.getDate() + i);
@@ -127,13 +133,22 @@ export function WeekGrid({
             </div>
           )}
 
-          <div className="no-scrollbar flex h-[75vh] max-h-[75vh] flex-1 overflow-y-auto rounded-sm border-border border-y border-l">
+          <div
+            className={cn(
+              "no-scrollbar flex h-[80vh] max-h-[80vh] flex-1 overflow-x-auto overflow-y-auto rounded-sm border-border border-y border-l",
+              "scroll-smooth"
+            )}
+          >
             {days.map((date) => {
               const { allDay, timed } = getEventsForDay(date);
               return (
-                <div className="flex-1" key={date.toISOString()}>
+                <div
+                  className={cn("flex-shrink-0", dayWidthClass)}
+                  key={date.toISOString()}
+                >
                   <DayColumn
                     allDayEvents={allDay}
+                    breakpoint={breakpoint}
                     date={date}
                     isToday={isToday(date)}
                     onTimeSlotClick={handleTimeSlotClick}

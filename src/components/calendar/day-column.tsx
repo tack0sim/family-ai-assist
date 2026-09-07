@@ -1,11 +1,13 @@
 "use client";
 
+import type { ViewportBreakpoint } from "@/hooks/use-responsive-days";
 import type { EventWithDetails } from "@/lib/types/events";
 import { AllDaySection } from "./all-day-section";
 import { TimeSlot } from "./time-slot";
 
 interface DayColumnProps {
   allDayEvents: EventWithDetails[];
+  breakpoint?: ViewportBreakpoint;
   date: Date;
   isToday: boolean;
   onTimeSlotClick: (date: Date, hour: number, minute: number) => void;
@@ -20,6 +22,7 @@ export function DayColumn({
   timedEvents,
   isToday,
   onTimeSlotClick,
+  breakpoint = "desktop",
 }: DayColumnProps) {
   const dayName = date.toLocaleDateString("en-US", { weekday: "short" });
   const dayDate = date.getDate();
@@ -51,6 +54,7 @@ export function DayColumn({
           return (
             <div key={`${hour}-0`}>
               <TimeSlot
+                breakpoint={breakpoint}
                 date={date}
                 events={timedEvents}
                 hour={hour}
@@ -58,6 +62,7 @@ export function DayColumn({
                 onTimeSlotClick={onTimeSlotClick}
               />
               <TimeSlot
+                breakpoint={breakpoint}
                 date={date}
                 events={timedEvents}
                 hour={hour}

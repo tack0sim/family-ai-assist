@@ -1,10 +1,12 @@
 "use client";
 
+import type { ViewportBreakpoint } from "@/hooks/use-responsive-days";
 import type { EventWithDetails } from "@/lib/types/events";
 import { cn } from "@/lib/utils";
 import { EventCard } from "./event-card";
 
 interface TimeSlotProps {
+  breakpoint?: ViewportBreakpoint;
   date: Date;
   events: EventWithDetails[];
   hour: number;
@@ -63,6 +65,7 @@ export function TimeSlot({
   events,
   onTimeSlotClick,
   isLast,
+  breakpoint = "desktop",
 }: TimeSlotProps) {
   const timeStr = new Date(2024, 0, 1, hour, minute).toLocaleTimeString(
     "en-US",
@@ -125,7 +128,7 @@ export function TimeSlot({
                   zIndex: 10,
                 }}
               >
-                <EventCard event={event} />
+                <EventCard breakpoint={breakpoint} event={event} />
               </div>
             );
           })}

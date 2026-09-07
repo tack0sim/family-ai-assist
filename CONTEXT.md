@@ -56,6 +56,26 @@ _Avoid_: Privacy, access level, scope
 An RRULE string defining how an event repeats over time. v1 stores the rule but does not expand to instances.
 _Avoid_: Repeat, series, pattern
 
+**Week Grid**:
+The responsive calendar layout rendering all 7 days horizontally in a scrollable container. Day column width varies by viewport breakpoint: 50vw on mobile (2 days visible), 20vw on tablet (5 days visible), and flex-1 on desktop (7 days visible). Snap-scrolling aligns columns when scroll stops.
+_Avoid_: Calendar view, week view, calendar grid
+
+**Day Column**:
+A vertical column representing a single day, containing all-day events at the top and 24 hourly time slots below.
+_Avoid_: Day view, day card
+
+**Scroll Window**:
+The visible portion of the week grid at any moment. Constrained by viewport width and day column width per breakpoint (50vw mobile, 20vw tablet, flex-1 desktop).
+_Avoid_: Viewport, visible area
+
+**Week Boundary**:
+The implicit hard limit at Monday (start) and Sunday (end) of the current week. Enforced by week navigation buttons—users cannot scroll beyond these boundaries; must navigate to adjacent weeks via UI.
+_Avoid_: Edge, limit, constraint
+
+**Snap Scrolling**:
+Horizontal scroll behavior that would align day columns to viewport edges when scrolling stops. Currently deferred to v2 due to conflicts with absolutely positioned EventCards. Free-flow scrolling provides intuitive navigation for v1.
+_Avoid_: Snap points, scroll locking
+
 ### AI & Communication
 
 **Chat Message**:

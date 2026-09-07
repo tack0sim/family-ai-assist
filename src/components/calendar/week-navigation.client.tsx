@@ -42,7 +42,7 @@ export function WeekNavigation({ onWeekChange }: WeekNavigationProps) {
   )} - ${state.currentWeekEnd.toLocaleDateString("de-DE")}`;
 
   return (
-    <div className="flex items-center justify-between gap-4 bg-white p-4">
+    <div className="flex flex-col items-start justify-between gap-4 bg-white p-4 lg:flex-row lg:items-center">
       <div className="flex items-center gap-2">
         <Button
           className="gap-1"
