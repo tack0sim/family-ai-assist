@@ -40,7 +40,7 @@ export default async function OnboardingPage() {
 
   return (
     <Section>
-      <Container>
+      <Container variant="narrow">
         <div className="mb-12">
           <h1 className="mb-2 font-bold text-3xl tracking-tight">
             Welcome to Family Assist
