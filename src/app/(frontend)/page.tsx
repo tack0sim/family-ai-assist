@@ -16,7 +16,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatEventResponse } from "@/lib/utils/format-events";
 
 export const metadata: Metadata = {
-  title: "Dashboard | Family Assist",
+  title: "Family Assist",
   description:
     "Dashboard of the Family Assist platform. Family Assist is an AI-powered SaaS platform to help manage family tasks and activities. The platform simplifies family organization and communication. It features include shared calendars, task management, and an AI assistant for task management.",
   openGraph: {
@@ -26,6 +26,7 @@ export const metadata: Metadata = {
       "Family Assist is an AI-powered SaaS platform to help manage family tasks and activities. The platform simplifies family organization and communication. It features include shared calendars, task management, and an AI assistant for task management.",
     siteName: "Family Assist",
   },
+  robots: { index: false, follow: false },
 };
 
 function getWeekBoundaries(date: Date) {
