@@ -100,7 +100,7 @@ export function InviteFirstMembersModal({
       open={true}
       // Note: onOpenChange is not needed since we control visibility via props
     >
-      <DialogContent className="max-w-lg">
+      <DialogContent className="px-5">
         {showSuccess ? (
           <div className="py-8 text-center">
             <div className="mb-4 text-green-600">
