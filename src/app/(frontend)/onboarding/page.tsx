@@ -1,5 +1,6 @@
 import type { Metadata } from "next/dist/lib/metadata/types/metadata-interface";
 import { redirect } from "next/navigation";
+import { Container } from "@/components/layout/container";
 import { Section } from "@/components/layout/section";
 import { CreateFamilyForm } from "@/components/onboarding/create-family-form.client";
 import { InvitationHandler } from "@/components/onboarding/invitation-handler.client";
@@ -39,7 +40,7 @@ export default async function OnboardingPage() {
 
   return (
     <Section>
-      <div className="mx-auto max-w-2xl">
+      <Container>
         <div className="mb-12">
           <h1 className="mb-2 font-bold text-3xl tracking-tight">
             Welcome to Family Assist
@@ -69,7 +70,7 @@ export default async function OnboardingPage() {
 
           <JoinFamilyForm /> */}
         </div>
-      </div>
+      </Container>
     </Section>
   );
 }
