@@ -92,13 +92,13 @@ export function TimeSlot({
         isLast ? "" : "border-border border-b"
       )}
     >
-      <div className="w-12 flex-shrink-0 bg-slate-50 py-2 text-center text-slate-500 text-xs">
+      <div className="w-12 flex-shrink-0 bg-muted py-2 text-center text-muted-foreground text-xs">
         {minute === 0 && timeStr}
       </div>
       {isEmpty ? (
         <button
           aria-label={`Add event at ${timeStr}`}
-          className="relative flex-1 cursor-pointer px-1 py-2 text-left transition-colors hover:bg-slate-100"
+          className="relative flex-1 cursor-pointer px-1 py-2 text-left transition-colors hover:bg-muted"
           onClick={handleClick}
           type="button"
         />

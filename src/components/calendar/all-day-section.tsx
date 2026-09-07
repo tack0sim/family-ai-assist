@@ -20,8 +20,10 @@ export function AllDaySection({
   }
 
   return (
-    <div className="border-border border-b bg-slate-50 p-2">
-      <div className="mb-1 font-semibold text-slate-600 text-xs">All-day</div>
+    <div className="border-border border-b bg-muted p-2">
+      <div className="mb-1 font-semibold text-muted-foreground text-xs">
+        All-day
+      </div>
       <div className={"flex flex-wrap gap-2"}>
         {allDayEvents.map((eventWithDetails) => (
           <div className="min-w-fit flex-1" key={eventWithDetails.event.id}>

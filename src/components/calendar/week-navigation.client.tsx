@@ -42,7 +42,7 @@ export function WeekNavigation({ onWeekChange }: WeekNavigationProps) {
   )} - ${state.currentWeekEnd.toLocaleDateString("de-DE")}`;
 
   return (
-    <div className="flex flex-col items-start justify-between gap-4 bg-white p-4 lg:flex-row lg:items-center">
+    <div className="flex flex-col items-start justify-between gap-4 bg-background p-4 lg:flex-row lg:items-center">
       <div className="flex items-center gap-2">
         <Button
           className="gap-1"
@@ -66,7 +66,7 @@ export function WeekNavigation({ onWeekChange }: WeekNavigationProps) {
           Today
         </Button>
       </div>
-      <div className="font-semibold text-slate-700 text-sm">{weekRange}</div>
+      <div className="font-semibold text-foreground text-sm">{weekRange}</div>
     </div>
   );
 }

@@ -128,7 +128,7 @@ export function WeekGrid({
           <WeekNavigation onWeekChange={handleWeekChange} />
 
           {loading && (
-            <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/20">
+            <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/20">
               <Spinner />
             </div>
           )}

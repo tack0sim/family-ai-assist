@@ -28,20 +28,20 @@ export function DayColumn({
   const dayDate = date.getDate();
   const monthName = date.toLocaleDateString("en-US", { month: "short" });
 
-  const bgColor = isToday ? "bg-blue-50" : "bg-white";
+  const bgColor = isToday ? "bg-primary/10" : "bg-background";
 
   return (
     <div className={`flex flex-col border-border border-r ${bgColor}`}>
-      <div className="sticky top-0 z-20 border-border border-b bg-slate-100 p-2 text-center">
+      <div className="sticky top-0 z-20 border-border border-b bg-muted p-2 text-center">
         <div
-          className={`font-semibold text-sm ${isToday ? "text-blue-600" : ""}`}
+          className={`font-semibold text-sm ${isToday ? "text-primary" : ""}`}
         >
           {dayName}
         </div>
-        <div className={`font-bold text-lg ${isToday ? "text-blue-600" : ""}`}>
+        <div className={`font-bold text-lg ${isToday ? "text-primary" : ""}`}>
           {dayDate}
         </div>
-        <div className="text-slate-600 text-xs">{monthName}</div>
+        <div className="text-muted-foreground text-xs">{monthName}</div>
       </div>
 
       {allDayEvents.length > 0 && (

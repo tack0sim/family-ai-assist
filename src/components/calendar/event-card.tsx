@@ -16,24 +16,24 @@ const eventTypeColors: Record<
   { bg: string; text: string; border: string }
 > = {
   event: {
-    bg: "bg-blue-50",
-    text: "text-blue-900",
-    border: "border-blue-200",
+    bg: "bg-blue-50 dark:bg-blue-950/30",
+    text: "text-blue-900 dark:text-blue-200",
+    border: "border-blue-200 dark:border-blue-800",
   },
   appointment: {
-    bg: "bg-purple-50",
-    text: "text-purple-900",
-    border: "border-purple-200",
+    bg: "bg-purple-50 dark:bg-purple-950/30",
+    text: "text-purple-900 dark:text-purple-200",
+    border: "border-purple-200 dark:border-purple-800",
   },
   reminder: {
-    bg: "bg-orange-50",
-    text: "text-orange-900",
-    border: "border-orange-200",
+    bg: "bg-orange-50 dark:bg-orange-950/30",
+    text: "text-orange-900 dark:text-orange-200",
+    border: "border-orange-200 dark:border-orange-800",
   },
   deadline: {
-    bg: "bg-red-50",
-    text: "text-red-900",
-    border: "border-red-200",
+    bg: "bg-red-50 dark:bg-red-950/30",
+    text: "text-red-900 dark:text-red-200",
+    border: "border-red-200 dark:border-red-800",
   },
 };
 
