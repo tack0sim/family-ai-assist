@@ -169,7 +169,7 @@ export function ManageChildrenSection({
                         </AvatarFallback>
                       </Avatar>
                       <div className="min-w-0 flex-1">
-                        <p className="font-medium text-gray-900">
+                        <p className="font-medium text-foreground">
                           {child.display_name || "Unknown"}
                         </p>
                         <p className="text-gray-400 text-xs">

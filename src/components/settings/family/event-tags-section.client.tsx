@@ -209,7 +209,7 @@ export function EventTagsSection({
                           style={{ backgroundColor: tag.color }}
                         />
                       )}
-                      <p className="truncate font-medium text-gray-900">
+                      <p className="truncate font-medium text-foreground">
                         {tag.name}
                       </p>
                     </div>
