@@ -47,7 +47,7 @@
     "fix": "ultracite fix",
     "email:dev": "email dev"
   },
-  "version": "0.2.0-beta",
+  "version": "0.3.0-beta",
   "private": true,
   "packageManager": "pnpm@11.5.0",
   "engines": {
