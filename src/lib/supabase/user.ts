@@ -15,8 +15,8 @@ function getMetadataString(
 
 export function getUserDisplayName(user?: UserLike | null) {
   return (
-    getMetadataString(user?.user_metadata, "full_name") ??
     getMetadataString(user?.user_metadata, "display_name") ??
+    getMetadataString(user?.user_metadata, "full_name") ??
     getMetadataString(user?.user_metadata, "name") ??
     user?.email
   );
