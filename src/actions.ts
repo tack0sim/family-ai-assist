@@ -716,14 +716,34 @@ export async function updateUserProfile(displayName: string) {
     throw new Error("Not authenticated");
   }
 
-  const { error } = await supabase.auth.updateUser({
+  const trimmedDisplayName = displayName.trim();
+
+  // Update profiles table first (with RLS enforcement)
+  // This ensures only the authenticated user's profile can be updated
+  const { error: updateProfileErr } = await supabase
+    .from("profiles")
+    .update({
+      display_name: trimmedDisplayName,
+    })
+    .eq("id", userId);
+
+  if (updateProfileErr) {
+    throw new Error(
+      updateProfileErr.message || "Failed to update profile in database"
+    );
+  }
+
+  // Update auth metadata after successful profiles update
+  const { error: authError } = await supabase.auth.updateUser({
     data: {
-      display_name: displayName.trim(),
+      display_name: trimmedDisplayName,
     },
   });
 
-  if (error) {
-    throw new Error(error.message || "Failed to update profile");
+  if (authError) {
+    throw new Error(
+      authError.message || "Failed to update authentication metadata"
+    );
   }
 }
 

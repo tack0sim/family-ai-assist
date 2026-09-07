@@ -49,6 +49,7 @@ import {
   signIn,
   signUp,
   updateMemberRole,
+  updateUserProfile,
 } from "./actions";
 
 describe("Family Management - createFamily", () => {
@@ -2837,5 +2838,265 @@ describe("Event Tag Management - getEventTags", () => {
     // Assert
     expect(result).toHaveLength(0);
     expect(result).toEqual([]);
+  });
+});
+
+describe("User Profile Management - updateUserProfile", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("should update profiles table first, then auth.users", async () => {
+    // Arrange
+    const { createClient } = await import("@/lib/supabase/server");
+    const userId = "user-123";
+    const newDisplayName = "John Doe";
+
+    const eqMock = vi.fn().mockResolvedValue({
+      data: null,
+      error: null,
+    });
+
+    const updateMock = vi.fn().mockReturnValue({
+      eq: eqMock,
+    });
+
+    const mockSupabaseClient = {
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: {
+            user: { id: userId, email: "john@example.com" },
+          },
+        }),
+        updateUser: vi.fn().mockResolvedValue({
+          data: { user: { id: userId } },
+          error: null,
+        }),
+      },
+      from: vi.fn((table: string) => {
+        if (table === "profiles") {
+          return { update: updateMock };
+        }
+        return {};
+      }),
+    };
+
+    vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
+
+    // Act
+    await updateUserProfile(newDisplayName);
+
+    // Assert
+    expect(updateMock).toHaveBeenCalledWith({ display_name: newDisplayName });
+    expect(eqMock).toHaveBeenCalledWith("id", userId);
+    expect(mockSupabaseClient.auth.updateUser).toHaveBeenCalledWith({
+      data: { display_name: newDisplayName },
+    });
+  });
+
+  it("should not call auth.updateUser if profiles update fails", async () => {
+    // Arrange
+    const { createClient } = await import("@/lib/supabase/server");
+    const userId = "user-123";
+    const profileErrorMessage = "RLS policy violation";
+
+    const mockSupabaseClient = {
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: userId } },
+        }),
+        updateUser: vi.fn(),
+      },
+      from: vi.fn((table: string) => {
+        if (table === "profiles") {
+          return {
+            update: vi.fn().mockReturnValue({
+              eq: vi.fn().mockResolvedValue({
+                data: null,
+                error: { message: profileErrorMessage },
+              }),
+            }),
+          };
+        }
+        return {};
+      }),
+    };
+
+    vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
+
+    // Act & Assert
+    await expect(updateUserProfile("Jane Doe")).rejects.toThrow(
+      profileErrorMessage
+    );
+    expect(mockSupabaseClient.auth.updateUser).not.toHaveBeenCalled();
+  });
+
+  it("should throw error with specific message when auth.updateUser fails", async () => {
+    // Arrange
+    const { createClient } = await import("@/lib/supabase/server");
+    const userId = "user-123";
+    const authErrorMessage = "Auth service error";
+
+    const mockSupabaseClient = {
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: userId } },
+        }),
+        updateUser: vi.fn().mockResolvedValue({
+          data: null,
+          error: { message: authErrorMessage },
+        }),
+      },
+      from: vi.fn((table: string) => {
+        if (table === "profiles") {
+          return {
+            update: vi.fn().mockReturnValue({
+              eq: vi.fn().mockResolvedValue({
+                data: null,
+                error: null,
+              }),
+            }),
+          };
+        }
+        return {};
+      }),
+    };
+
+    vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
+
+    // Act & Assert
+    await expect(updateUserProfile("Jane Doe")).rejects.toThrow(
+      authErrorMessage
+    );
+  });
+
+  it("should throw error when not authenticated", async () => {
+    // Arrange
+    const { createClient } = await import("@/lib/supabase/server");
+
+    const mockSupabaseClient = {
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: null },
+        }),
+      },
+      from: vi.fn(),
+    };
+
+    vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
+
+    // Act & Assert
+    await expect(updateUserProfile("Jane Doe")).rejects.toThrow(
+      "Not authenticated"
+    );
+  });
+
+  it("should validate display name is not empty", async () => {
+    await expect(updateUserProfile("")).rejects.toThrow(
+      "Display name is required"
+    );
+    await expect(updateUserProfile("   ")).rejects.toThrow(
+      "Display name is required"
+    );
+  });
+
+  it("should validate display name minimum length", async () => {
+    await expect(updateUserProfile("J")).rejects.toThrow(
+      "Display name must be at least 2 characters"
+    );
+  });
+
+  it("should validate display name maximum length", async () => {
+    const longName = "A".repeat(101);
+    await expect(updateUserProfile(longName)).rejects.toThrow(
+      "Display name must be less than 100 characters"
+    );
+  });
+
+  it("should trim display name before updating", async () => {
+    // Arrange
+    const { createClient } = await import("@/lib/supabase/server");
+    const userId = "user-123";
+    const displayNameWithSpaces = "  Jane Doe  ";
+    const trimmedName = "Jane Doe";
+
+    const updateMock = vi.fn().mockReturnValue({
+      eq: vi.fn().mockResolvedValue({
+        data: null,
+        error: null,
+      }),
+    });
+
+    const mockSupabaseClient = {
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: userId } },
+        }),
+        updateUser: vi.fn().mockResolvedValue({
+          data: { user: { id: userId } },
+          error: null,
+        }),
+      },
+      from: vi.fn((table: string) => {
+        if (table === "profiles") {
+          return { update: updateMock };
+        }
+        return {};
+      }),
+    };
+
+    vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
+
+    // Act
+    await updateUserProfile(displayNameWithSpaces);
+
+    // Assert
+    expect(updateMock).toHaveBeenCalledWith({ display_name: trimmedName });
+    expect(mockSupabaseClient.auth.updateUser).toHaveBeenCalledWith({
+      data: { display_name: trimmedName },
+    });
+  });
+
+  it("should ensure only authenticated user's profile is updated (RLS enforcement)", async () => {
+    // Arrange
+    const { createClient } = await import("@/lib/supabase/server");
+    const authenticatedUserId = "user-123";
+    const newDisplayName = "Updated Name";
+
+    const eqMock = vi.fn().mockResolvedValue({
+      data: null,
+      error: null,
+    });
+
+    const updateMock = vi.fn().mockReturnValue({
+      eq: eqMock,
+    });
+
+    const mockSupabaseClient = {
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: authenticatedUserId } },
+        }),
+        updateUser: vi.fn().mockResolvedValue({
+          data: { user: { id: authenticatedUserId } },
+          error: null,
+        }),
+      },
+      from: vi.fn((table: string) => {
+        if (table === "profiles") {
+          return { update: updateMock };
+        }
+        return {};
+      }),
+    };
+
+    vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
+
+    // Act
+    await updateUserProfile(newDisplayName);
+
+    // Assert
+    // Verify .eq("id", userId) is called - this ensures RLS policy checks auth.uid()
+    expect(eqMock).toHaveBeenCalledWith("id", authenticatedUserId);
   });
 });
