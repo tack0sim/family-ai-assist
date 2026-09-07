@@ -1,5 +1,6 @@
 import type { Metadata } from "next/dist/lib/metadata/types/metadata-interface";
 import { redirect } from "next/navigation";
+import { Section } from "@/components/layout/section";
 import { CreateFamilyForm } from "@/components/onboarding/create-family-form.client";
 import { InvitationHandler } from "@/components/onboarding/invitation-handler.client";
 import { checkUserFamilyContext } from "@/lib/supabase/check-family";
@@ -37,14 +38,14 @@ export default async function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white px-4 py-12">
+    <Section>
       <div className="mx-auto max-w-2xl">
         <div className="mb-12">
           <h1 className="mb-2 font-bold text-3xl tracking-tight">
-            Welcome to Family AI Assist
+            Welcome to Family Assist
           </h1>
           <p className="text-gray-600">
-            Get started by creating a family or joining an existing one
+            Get started by creating a family and inviting your family members
           </p>
         </div>
 
@@ -69,6 +70,6 @@ export default async function OnboardingPage() {
           <JoinFamilyForm /> */}
         </div>
       </div>
-    </div>
+    </Section>
   );
 }

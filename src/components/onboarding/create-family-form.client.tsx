@@ -94,9 +94,7 @@ export function CreateFamilyForm({
       <Card>
         <CardHeader>
           <CardTitle>Create a Family</CardTitle>
-          <CardDescription>
-            Start by creating a family and inviting members
-          </CardDescription>
+          <CardDescription>Start by creating a family</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit}>
