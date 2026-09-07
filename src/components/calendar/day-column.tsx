@@ -45,7 +45,11 @@ export function DayColumn({
       </div>
 
       {allDayEvents.length > 0 && (
-        <AllDaySection allDayEvents={allDayEvents} dayWidth="w-full" />
+        <AllDaySection
+          allDayEvents={allDayEvents}
+          breakpoint={breakpoint}
+          dayWidth="w-full"
+        />
       )}
 
       <div className="min-h-0 flex-1">

@@ -1,14 +1,20 @@
 "use client";
 
+import type { ViewportBreakpoint } from "@/hooks/use-responsive-days";
 import type { EventWithDetails } from "@/lib/types/events";
 import { EventCard } from "./event-card";
 
 interface AllDaySectionProps {
   allDayEvents: EventWithDetails[];
+  breakpoint?: ViewportBreakpoint;
   dayWidth: string;
 }
 
-export function AllDaySection({ allDayEvents, dayWidth }: AllDaySectionProps) {
+export function AllDaySection({
+  allDayEvents,
+  dayWidth,
+  breakpoint = "desktop",
+}: AllDaySectionProps) {
   if (allDayEvents.length === 0) {
     return null;
   }
@@ -19,7 +25,11 @@ export function AllDaySection({ allDayEvents, dayWidth }: AllDaySectionProps) {
       <div className={"flex flex-wrap gap-2"}>
         {allDayEvents.map((eventWithDetails) => (
           <div className="min-w-fit flex-1" key={eventWithDetails.event.id}>
-            <EventCard event={eventWithDetails} isAllDay />
+            <EventCard
+              breakpoint={breakpoint}
+              event={eventWithDetails}
+              isAllDay
+            />
           </div>
         ))}
       </div>
