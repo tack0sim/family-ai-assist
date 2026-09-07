@@ -28,7 +28,9 @@ export function DayColumn({
   const dayDate = date.getDate();
   const monthName = date.toLocaleDateString("en-US", { month: "short" });
 
-  const bgColor = isToday ? "bg-primary/10" : "bg-background";
+  const bgColor = isToday
+    ? "bg-primary/10 dark:bg-primary/20"
+    : "bg-background";
 
   return (
     <div className={`flex flex-col border-border border-r ${bgColor}`}>

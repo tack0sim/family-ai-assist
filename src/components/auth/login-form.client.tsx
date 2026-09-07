@@ -91,7 +91,7 @@ export function LoginForm({
                     "Login"
                   )}
                 </Button>
-                {error && <p className="mt-2 text-red-600 text-sm">{error}</p>}
+                {error && <p className="mt-2 text-red-600 text-xs">{error}</p>}
                 <FieldDescription className="text-center">
                   Don&apos;t have an account?{" "}
                   <Link href={signupHref}>Sign up</Link>

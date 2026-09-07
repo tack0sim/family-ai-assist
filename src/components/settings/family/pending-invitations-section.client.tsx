@@ -113,7 +113,7 @@ export function PendingInvitationsSection({
           <div className="space-y-3">
             {pendingInvitations.map((invitation) => (
               <div
-                className="flex items-center justify-between gap-4 rounded-lg border border-gray-200 p-4"
+                className="flex items-center justify-between gap-4 rounded-lg border border-border p-4"
                 key={invitation.id}
               >
                 <div className="min-w-0 flex-1">

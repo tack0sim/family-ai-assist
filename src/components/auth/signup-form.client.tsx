@@ -119,9 +119,6 @@ export function SignupForm({
                     />
                   </Field>
                 </Field>
-                <FieldDescription>
-                  Must be at least 8 characters long.
-                </FieldDescription>
               </Field>
               <Field>
                 <Button disabled={isPending} type="submit">
@@ -134,7 +131,7 @@ export function SignupForm({
                     "Create Account"
                   )}
                 </Button>
-                {error && <p className="mt-2 text-red-600 text-sm">{error}</p>}
+                {error && <p className="mt-2 text-red-600 text-xs">{error}</p>}
                 <FieldDescription className="text-center">
                   Already have an account? <Link href={loginHref}>Sign in</Link>
                 </FieldDescription>

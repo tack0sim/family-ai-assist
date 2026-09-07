@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { fetchEventsByWeek, getEvents } from "@/actions";
 import { CalendarContainer } from "@/components/calendar/calendar-container.client";
-import { LandingPage } from "@/components/hero-section";
+import { LandingPage } from "@/components/landing-page";
 import { Spinner } from "@/components/ui/spinner";
 import { CalendarProvider } from "@/lib/calendar-provider";
 import { checkUserFamilyContext } from "@/lib/supabase/check-family";

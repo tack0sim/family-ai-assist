@@ -159,7 +159,7 @@ export function ManageChildrenSection({
               <div className="space-y-3">
                 {childProfiles.map((child) => (
                   <div
-                    className="flex items-center justify-between gap-4 rounded-lg border border-gray-200 p-4"
+                    className="flex items-center justify-between gap-4 rounded-lg border border-border p-4"
                     key={child.id}
                   >
                     <div className="flex flex-1 items-center gap-3">

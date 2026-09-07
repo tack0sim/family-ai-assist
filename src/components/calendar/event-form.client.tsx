@@ -141,7 +141,7 @@ export function EventForm({
 
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="px-4">
         <DialogHeader>
           <DialogTitle>
             {initialData?.id ? "Edit Event" : "Create Event"}

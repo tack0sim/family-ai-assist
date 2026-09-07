@@ -128,3 +128,9 @@
     @apply font-sans;
   }
 }
+
+@layer utilities {
+  body.theme {
+    @apply transition-colors duration-300;
+  }
+}

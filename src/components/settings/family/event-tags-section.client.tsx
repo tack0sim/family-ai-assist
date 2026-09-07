@@ -199,7 +199,7 @@ export function EventTagsSection({
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {tags.map((tag) => (
                   <div
-                    className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 p-3"
+                    className="flex items-center justify-between gap-3 rounded-lg border border-border p-3"
                     key={tag.id}
                   >
                     <div className="flex min-w-0 flex-1 items-center gap-2">

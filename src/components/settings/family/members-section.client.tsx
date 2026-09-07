@@ -125,7 +125,7 @@ export function MembersSection({
           <div className="space-y-3">
             {activeMembers.map((member) => (
               <div
-                className="flex flex-col items-start justify-between gap-4 rounded-lg border border-gray-200 p-4 lg:flex-row lg:items-center"
+                className="flex flex-col items-start justify-between gap-4 rounded-lg border border-border p-4 lg:flex-row lg:items-center"
                 key={member.id}
               >
                 <div className="flex flex-1 items-center gap-3">

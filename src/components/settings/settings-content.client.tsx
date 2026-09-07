@@ -41,14 +41,10 @@ export function SettingsContent({
   return (
     <div className="flex flex-col gap-6">
       {/* Tab Navigation */}
-      <div className="flex gap-2 border-gray-200 border-b">
+      <div className="flex gap-2 border-border border-b">
         {TABS.map((tab) => (
           <Button
-            className={
-              activeTab === tab.id
-                ? "rounded-none border-current border-b-2"
-                : ""
-            }
+            className="rounded-t-sm rounded-b-none"
             key={tab.id}
             onClick={() => handleTabChange(tab.id)}
             variant={activeTab === tab.id ? "default" : "ghost"}

@@ -2,6 +2,8 @@ import type { Metadata } from "next/dist/lib/metadata/types/metadata-interface";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { getEventTags, getFamilyData } from "@/actions";
+import { Container } from "@/components/layout/container";
+import { Section } from "@/components/layout/section";
 import { SettingsContent } from "@/components/settings/settings-content.client";
 import { Spinner } from "@/components/ui/spinner";
 import { checkUserFamilyContext } from "@/lib/supabase/check-family";
@@ -56,20 +58,24 @@ export default async function SettingsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 px-4 py-8">
-      <div>
-        <h1 className="font-bold text-3xl tracking-tight">Settings</h1>
-        <p className="text-gray-600">Manage your profile and family</p>
-      </div>
-      <Suspense
-        fallback={
-          <div className="flex justify-center">
-            <Spinner />
+    <Section>
+      <Container>
+        <div className="flex flex-col gap-6 px-4 py-8">
+          <div>
+            <h1 className="font-bold text-3xl tracking-tight">Settings</h1>
+            <p className="text-gray-600">Manage your profile and family</p>
           </div>
-        }
-      >
-        <SettingsContentWrapper />
-      </Suspense>
-    </div>
+          <Suspense
+            fallback={
+              <div className="flex justify-center">
+                <Spinner />
+              </div>
+            }
+          >
+            <SettingsContentWrapper />
+          </Suspense>
+        </div>
+      </Container>
+    </Section>
   );
 }

@@ -31,7 +31,7 @@ export default async function AppLayout({
         <SidebarProvider>
           <AuthenticatedLayout>
             <Header />
-            {children}
+            <main className="flex grow flex-col">{children}</main>
             <Footer />
           </AuthenticatedLayout>
         </SidebarProvider>
