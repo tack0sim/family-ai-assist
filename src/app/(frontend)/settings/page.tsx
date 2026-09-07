@@ -1,3 +1,4 @@
+import type { Metadata } from "next/dist/lib/metadata/types/metadata-interface";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { getEventTags, getFamilyData } from "@/actions";
@@ -6,6 +7,19 @@ import { Spinner } from "@/components/ui/spinner";
 import { checkUserFamilyContext } from "@/lib/supabase/check-family";
 import { createClient } from "@/lib/supabase/server";
 import { getUserDisplayName } from "@/lib/supabase/user";
+
+export const metadata: Metadata = {
+  title: "Settings | Family Assist",
+  description:
+    "Settings page of the Family Assist platform. Family Assist is an AI-powered SaaS platform to help manage family tasks and activities. The platform simplifies family organization and communication. It features include shared calendars, task management, and an AI assistant for task management.",
+  openGraph: {
+    type: "website",
+    title: "Settings - Family Assist",
+    description:
+      "Family Assist is an AI-powered SaaS platform to help manage family tasks and activities. The platform simplifies family organization and communication. It features include shared calendars, task management, and an AI assistant for task management.",
+    siteName: "Family Assist",
+  },
+};
 
 async function SettingsContentWrapper() {
   const supabase = await createClient();

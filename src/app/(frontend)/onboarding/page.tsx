@@ -1,8 +1,22 @@
+import type { Metadata } from "next/dist/lib/metadata/types/metadata-interface";
 import { redirect } from "next/navigation";
 import { CreateFamilyForm } from "@/components/onboarding/create-family-form.client";
 import { InvitationHandler } from "@/components/onboarding/invitation-handler.client";
 import { checkUserFamilyContext } from "@/lib/supabase/check-family";
 import { createClient } from "@/lib/supabase/server";
+
+export const metadata: Metadata = {
+  title: "Onboarding | Family Assist",
+  description:
+    "Onboarding page of the Family Assist platform. Family Assist is an AI-powered SaaS platform to help manage family tasks and activities. The platform simplifies family organization and communication. It features include shared calendars, task management, and an AI assistant for task management.",
+  openGraph: {
+    type: "website",
+    title: "Onboarding - Family Assist",
+    description:
+      "Family Assist is an AI-powered SaaS platform to help manage family tasks and activities. The platform simplifies family organization and communication. It features include shared calendars, task management, and an AI assistant for task management.",
+    siteName: "Family Assist",
+  },
+};
 
 export default async function OnboardingPage() {
   // Check if user is authenticated
