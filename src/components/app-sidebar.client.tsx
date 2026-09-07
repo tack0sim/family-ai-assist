@@ -1,11 +1,7 @@
 "use client";
 
 import type { User } from "@supabase/supabase-js";
-import {
-  AudioLinesIcon,
-  GalleryVerticalEndIcon,
-  TerminalIcon,
-} from "lucide-react";
+import { GalleryVerticalEndIcon } from "lucide-react";
 import type * as React from "react";
 import { NavMain } from "@/components/nav-main.client";
 import { NavUser } from "@/components/nav-user.client";
@@ -26,16 +22,16 @@ const data = {
       logo: <GalleryVerticalEndIcon />,
       plan: "Enterprise",
     },
-    {
-      name: "Acme Corp.",
-      logo: <AudioLinesIcon />,
-      plan: "Startup",
-    },
-    {
-      name: "Evil Corp.",
-      logo: <TerminalIcon />,
-      plan: "Free",
-    },
+    // {
+    //   name: "Acme Corp.",
+    //   logo: <AudioLinesIcon />,
+    //   plan: "Startup",
+    // },
+    // {
+    //   name: "Evil Corp.",
+    //   logo: <TerminalIcon />,
+    //   plan: "Free",
+    // },
   ],
 };
 
