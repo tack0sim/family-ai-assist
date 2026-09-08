@@ -69,9 +69,14 @@ export async function signUp(formData: FormData, invitationToken?: string) {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
   const confirmPassword = formData.get("confirm-password") as string;
+  const betaConsent = formData.get("beta-consent") === "on";
 
   if (password !== confirmPassword) {
     throw new Error("Passwords do not match");
+  }
+
+  if (!betaConsent) {
+    throw new Error("You must accept the Letter of Intent to continue");
   }
 
   const validation = validatePasswordComplexity(password);
@@ -105,8 +110,50 @@ export async function signUp(formData: FormData, invitationToken?: string) {
     throw new Error("Failed to verify user profile. Please try again.");
   }
 
+  // Update profile with beta consent
+  const { error: updateErr } = await supabase
+    .from("profiles")
+    .update({ beta_consent_agreed: true })
+    .eq("id", data.user.id);
+
+  if (updateErr) {
+    throw new Error("Failed to save consent. Please try again.");
+  }
+
   let destination = "/onboarding";
   if (invitationToken) {
+    destination += `?invitation_token=${encodeURIComponent(invitationToken)}`;
+  }
+
+  redirect(destination);
+}
+
+export async function submitBetaConsent(invitationToken?: string) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("Not authenticated");
+  }
+
+  // Update profile with beta consent
+  const { error: updateErr } = await supabase
+    .from("profiles")
+    .update({ beta_consent_agreed: true })
+    .eq("id", user.id);
+
+  if (updateErr) {
+    throw new Error("Failed to save consent. Please try again.");
+  }
+
+  // Check if user has family context
+  const hasFamily = await checkUserFamilyContext();
+  let destination = hasFamily ? "/" : "/onboarding";
+
+  if (invitationToken && !hasFamily) {
     destination += `?invitation_token=${encodeURIComponent(invitationToken)}`;
   }
 

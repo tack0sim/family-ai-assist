@@ -122,3 +122,49 @@ _Avoid_: Active user, membership, access
 A Supabase auth session tied to a profile, automatically refreshed until logout.
 _Avoid_: Login session, auth token, user session
 
+### Beta Testing & Consent
+
+**Beta Tester**:
+A profile participating in beta phases (Beta Phase 1 for testing & feedback; Beta Phase 2+ for new features like LLM integration).
+_Avoid_: Tester, beta user, early access user
+
+**Letter of Intent**:
+A non-binding agreement defining beta testing scope, data collection, expected feedback mechanisms, and planned feature roadmap. Intentionally broad to cover future features without renewal.
+_Avoid_: Beta agreement, terms of service, data agreement
+
+**Beta Testing Consent**:
+A boolean flag (stored in public.profiles.beta_testing_consent) recording whether a profile accepts the Letter of Intent. Broad scope covers current and future beta features (e.g., LLM integration) but does not require renewal per feature.
+_Avoid_: Opt-in, agreement status, acceptance
+
+**Feedback**:
+User-provided information about product quality, desired features, or bugs collected via structured feedback form.
+_Avoid_: Feedback data, input, comments
+
+**Deployment Notification**:
+A toast or banner alert informing beta testers of new builds, features, or updates deployed post-CI/CD pipeline.
+_Avoid_: Update notification, build alert, release notice
+
+**LLM Consent**:
+Beta Phase 2+ specific consent allowing the LLM integration to access calendar events, event assignments, descriptions, and user profile names. Requires explicit confirmation when LLM feature is active, distinct from initial beta testing consent.
+_Avoid_: AI consent, language model permission, processing consent
+
+**Family-wide LLM Opt-out**:
+If any family member declines LLM consent, the entire family is excluded from LLM features. Individual members cannot opt in if the family's collective decision is out.
+_Avoid_: Family opt-out, collective opt-out, group exclusion
+
+**Collected Data Scope**:
+The specific data categories collected during beta testing: auth.users table contents (email, password hash, avatar, timestamps), event records (public.events, public.event_assignees, event_tags), and event metadata (title, description, all event-form fields). Excludes IP addresses (delegated to Vercel analytics).
+_Avoid_: Data collection, data types, information collected
+
+**Data Retention Period**:
+Data persists until the user explicitly deletes their profile (cascade deletes all family memberships and associated data) or leaves a family (deletes family-specific event data but retains global profile).
+_Avoid_: Data lifetime, retention policy, deletion window
+
+**Profile Deletion Cascade**:
+Permanent hard deletion of the user's profile, all family memberships, all created events, all chat history, and all uploaded files. No orphaned records or archives remain.
+_Avoid_: Account deletion, data purge, cleanup
+
+**Family Leave Cascade**:
+When a member leaves a family, the global profile is retained, all events within that family are deleted from the member's view, and the member may rejoin the family later.
+_Avoid_: Family exit, membership removal, leaving a group
+

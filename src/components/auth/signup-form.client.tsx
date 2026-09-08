@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
 import { signUp } from "@/actions";
+import { LetterOfIntentModal } from "@/components/consent/letter-of-intent-modal.client";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -39,13 +40,21 @@ export function SignupForm({
     : "/auth/login";
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [betaConsent, setBetaConsent] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
 
   const handleSignUp = (formData: FormData) => {
     const password = formData.get("password") as string;
     const confirmPassword = formData.get("confirm-password") as string;
+    const consent = formData.get("beta-consent") === "on";
 
     if (password !== confirmPassword) {
       setError("Passwords do not match");
+      return;
+    }
+
+    if (!consent) {
+      setError("You must accept the Letter of Intent to continue");
       return;
     }
 
@@ -121,7 +130,37 @@ export function SignupForm({
                 </Field>
               </Field>
               <Field>
-                <Button disabled={isPending} type="submit">
+                <div className="flex items-start gap-3">
+                  <input
+                    checked={betaConsent}
+                    className="mt-1 h-3 w-3 rounded border-gray-300 text-primary focus:ring-primary"
+                    id="beta-consent"
+                    name="beta-consent"
+                    onChange={(e) => setBetaConsent(e.target.checked)}
+                    type="checkbox"
+                  />
+                  <div className="flex-1">
+                    <label
+                      className="cursor-pointer font-medium text-xs leading-relaxed"
+                      htmlFor="beta-consent"
+                    >
+                      I accept the{" "}
+                      <Button
+                        className="inline h-auto cursor-pointer p-0 font-semibold"
+                        onClick={() => setModalOpen(true)}
+                        size="sm"
+                        type="button"
+                        variant="link"
+                      >
+                        Letter of Intent
+                      </Button>{" "}
+                      for beta testing
+                    </label>
+                  </div>
+                </div>
+              </Field>
+              <Field>
+                <Button disabled={isPending || !betaConsent} type="submit">
                   {isPending ? (
                     <>
                       <Spinner className="mr-2" />
@@ -140,6 +179,7 @@ export function SignupForm({
           </form>
         </CardContent>
       </Card>
+      <LetterOfIntentModal onOpenChange={setModalOpen} open={modalOpen} />
     </div>
   );
 }

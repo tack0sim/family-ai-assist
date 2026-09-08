@@ -32,6 +32,23 @@ export default async function OnboardingPage() {
     redirect("/auth/login?next=/onboarding");
   }
 
+  // Check if user has accepted beta testing consent
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("beta_consent_agreed")
+      .eq("id", user.id)
+      .single();
+
+    if (!profile?.beta_consent_agreed) {
+      redirect("/auth/consent");
+    }
+  }
+
   // Redirect to home if user already has family context
   const hasFamily = await checkUserFamilyContext();
   if (hasFamily) {

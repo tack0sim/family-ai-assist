@@ -57,12 +57,16 @@ export function LandingPage() {
       <Section className="pt-0!">
         <Container variant="narrow">
           <div className="border-border/40 border-t pt-8 lg:pt-12">
-            <p className="mx-auto max-w-xl text-muted-foreground text-sm sm:text-lg">
+            <p className="mx-auto max-w-xl text-muted-foreground text-sm sm:text-base">
               Family Assist is currently in active Beta-testing. Join the early
               access program to become an active part of shaping Family Assist.
               Your feedback will provide first-hand insights that will help us
               improve and tailor the platform to better serve your family's
               needs.
+              <br />
+              <br />
+              Please read the Letter of Intent to understand the terms and
+              conditions of participating in the beta program.
             </p>
           </div>
         </Container>

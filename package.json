@@ -12,6 +12,7 @@
     "react-calendar": "^6.0.1",
     "react-dom": "19.2.6",
     "react-email": "^6.6.7",
+    "react-markdown": "^10.1.0",
     "redis": "^6.2.1",
     "resend": "^6.17.1",
     "shadcn": "^4.1.0",

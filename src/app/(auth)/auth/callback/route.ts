@@ -21,6 +21,29 @@ export async function GET(request: Request) {
       // Profile is created automatically by the handle_auth_user_created trigger
       // when the user is first registered. No need to create or upsert it here.
 
+      // Check if user has accepted beta testing consent
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("beta_consent_agreed")
+          .eq("id", user.id)
+          .single();
+
+        // If consent not yet given (null or false), redirect to consent page
+        if (!profile?.beta_consent_agreed) {
+          const baseUrl = getBaseURL(request.headers);
+          let consentRedirect = "/auth/consent";
+          if (invitationToken) {
+            consentRedirect += `?invitation_token=${encodeURIComponent(invitationToken)}`;
+          }
+          return NextResponse.redirect(`${baseUrl}${consentRedirect}`);
+        }
+      }
+
       // Check if user has family context
       const hasFamily = await checkUserFamilyContext();
       let destination = hasFamily ? next : "/onboarding";
