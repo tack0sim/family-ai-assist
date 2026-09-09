@@ -13,6 +13,7 @@ import {
   getUserFamilyMembership,
 } from "@/lib/supabase/family";
 import { createClient } from "@/lib/supabase/server";
+import { getWeekBoundaries } from "@/lib/utils/date";
 import { formatEventResponse } from "@/lib/utils/format-events";
 
 export const metadata: Metadata = {
@@ -28,20 +29,6 @@ export const metadata: Metadata = {
   },
   robots: { index: false, follow: false },
 };
-
-function getWeekBoundaries(date: Date) {
-  const weekStart = new Date(date);
-  const dayOfWeek = weekStart.getDay();
-  const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-  weekStart.setDate(weekStart.getDate() + daysToMonday);
-  weekStart.setHours(0, 0, 0, 0);
-
-  const weekEnd = new Date(weekStart);
-  weekEnd.setDate(weekEnd.getDate() + 6);
-  weekEnd.setHours(23, 59, 59, 999);
-
-  return { weekStart, weekEnd };
-}
 
 async function CalendarView({ userId }: { userId: User["id"] }) {
   if (!userId) {

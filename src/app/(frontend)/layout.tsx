@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "../globals.css";
+import { Toaster } from "sonner";
 import { AuthenticatedLayout } from "@/components/layout/authenticated-layout";
 import { Footer } from "@/components/layout/footer";
 import { Header } from "@/components/layout/header";
@@ -35,6 +36,7 @@ export default async function AppLayout({
             <Footer />
           </AuthenticatedLayout>
         </SidebarProvider>
+        <Toaster />
       </ThemeProvider>
     </body>
   );

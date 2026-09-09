@@ -1,9 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import type { ViewportBreakpoint } from "@/hooks/use-responsive-days";
 import type { EventWithDetails } from "@/lib/types/events";
 import { cn } from "@/lib/utils";
+import { EventCardDialog } from "./event-card-dialog";
 
 interface EventCardProps {
   breakpoint?: ViewportBreakpoint;
@@ -52,6 +54,7 @@ export function EventCard({
   isAllDay = false,
   breakpoint = "desktop",
 }: EventCardProps) {
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const colors = eventTypeColors[event.event.type] || eventTypeColors.event;
   const variant = eventTypeBadgeVariants[event.event.type] || "default";
 
@@ -72,70 +75,103 @@ export function EventCard({
   const maxAssignees = isMobile ? 3 : 2;
 
   return (
-    <div
-      className={cn(
-        "h-full truncate rounded-md border border-l-4",
-        colors.bg,
-        colors.border,
-        isMobile ? "p-3" : "p-2"
-      )}
-    >
-      <div className="mb-1 flex flex-col items-start justify-between gap-2 truncate">
-        <Badge className="shrink-0 text-xs" variant={variant}>
-          {event.event.type}
-        </Badge>
-        <h3
-          className={cn(
-            "font-semibold",
-            colors.text,
-            isMobile ? "text-base" : "text-sm"
-          )}
+    <>
+      <div
+        className={cn(
+          "flex h-full w-full cursor-pointer flex-col items-start justify-start overflow-hidden rounded-md border border-l-4",
+          colors.bg,
+          colors.border,
+          isMobile ? "p-3" : "p-2"
+        )}
+        data-slot="event-card"
+        onClick={() => setIsDialogOpen(true)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            setIsDialogOpen(true);
+          }
+        }}
+        role="button"
+        tabIndex={0}
+      >
+        <div
+          className="mb-1 flex w-full flex-col items-start justify-between gap-2"
+          data-slot="event-badge-title"
         >
-          {event.event.title}
-        </h3>
-      </div>
-
-      {!isAllDay && (
-        <p className={cn("text-xs", colors.text, "opacity-75")}>
-          {startTime} - {endTime}
-        </p>
-      )}
-
-      {event.event.description && (
-        <p
-          className={cn(
-            "mt-1 text-xs",
-            colors.text,
-            "opacity-75",
-            isMobile ? "line-clamp-3" : "line-clamp-2"
-          )}
-        >
-          {event.event.description}
-        </p>
-      )}
-
-      {event.assignees && event.assignees.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-1">
-          {event.assignees.slice(0, maxAssignees).map((assignee) => {
-            const displayName = assignee.profiles?.display_name || "Unknown";
-            const firstName = displayName.split(" ")[0];
-            return (
-              <Badge
-                className="text-xs"
-                key={assignee.profile_id}
-                variant="outline"
-              >
-                {firstName}
-              </Badge>
-            );
-          })}
-          {event.assignees.length > maxAssignees && (
-            <Badge className="text-xs" variant="outline">
-              +{event.assignees.length - maxAssignees}
-            </Badge>
-          )}
+          <Badge
+            className="shrink-0 text-xs"
+            data-slot="event-card-badge"
+            variant={variant}
+          >
+            {event.event.type}
+          </Badge>
+          <h3
+            className={cn(
+              "w-full truncate font-semibold",
+              colors.text,
+              isMobile ? "text-base" : "text-sm"
+            )}
+            data-slot="event-card-title"
+          >
+            {event.event.title}
+          </h3>
         </div>
+
+        {!isAllDay && (
+          <p
+            className={cn("text-xs", colors.text, "opacity-75")}
+            data-slot="event-card-time"
+          >
+            {startTime} - {endTime}
+          </p>
+        )}
+
+        {event.event.description && (
+          <p
+            className={cn(
+              "mt-1 text-xs",
+              colors.text,
+              "opacity-75",
+              isMobile ? "line-clamp-3" : "line-clamp-2"
+            )}
+            data-slot="event-card-description"
+          >
+            {event.event.description}
+          </p>
+        )}
+
+        {event.assignees && event.assignees.length > 0 && (
+          <div
+            className="mt-2 flex flex-wrap gap-1"
+            data-slot="event-card-assignees"
+          >
+            {event.assignees.slice(0, maxAssignees).map((assignee) => {
+              const displayName = assignee.profiles?.display_name || "Unknown";
+              const firstName = displayName.split(" ")[0];
+              return (
+                <Badge
+                  className="text-xs"
+                  key={assignee.profile_id}
+                  variant="outline"
+                >
+                  {firstName}
+                </Badge>
+              );
+            })}
+            {event.assignees.length > maxAssignees && (
+              <Badge className="text-xs" variant="outline">
+                +{event.assignees.length - maxAssignees}
+              </Badge>
+            )}
+          </div>
+        )}
+      </div>
+      {isDialogOpen && (
+        <EventCardDialog
+          event={event}
+          onClose={() => setIsDialogOpen(false)}
+          open={true}
+        />
       )}
-    </div>
+    </>
   );
 }

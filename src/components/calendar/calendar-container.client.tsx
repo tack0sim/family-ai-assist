@@ -14,7 +14,7 @@ interface CalendarContainerProps {
 }
 
 export function CalendarContainer({
-  events,
+  events: initialEvents,
   familyId,
   familyMembers,
   onWeekChange,
@@ -22,8 +22,8 @@ export function CalendarContainer({
   const { setEvents } = useCalendar();
 
   useEffect(() => {
-    setEvents(events);
-  }, [events, setEvents]);
+    setEvents(initialEvents);
+  }, [initialEvents, setEvents]);
 
   return (
     <WeekGrid

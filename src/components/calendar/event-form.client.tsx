@@ -24,6 +24,7 @@ import {
   type CreateEventFormData,
   createEventSchema,
 } from "@/lib/schemas/events";
+import type { Event } from "@/lib/types/events";
 import type { FamilyMember } from "@/lib/types/settings";
 import { datetimeLocalToISO } from "@/lib/utils/format-datetime-local";
 
@@ -46,6 +47,7 @@ export function EventForm({
   familyMembers,
   initialData,
 }: EventFormProps) {
+  const [isLoading, setIsLoading] = useState(false);
   const [title, setTitle] = useState(initialData?.title ?? "");
   const [description, setDescription] = useState(
     initialData?.description ?? ""
@@ -53,16 +55,15 @@ export function EventForm({
   const [startAt, setStartAt] = useState(initialData?.startAt ?? "");
   const [endAt, setEndAt] = useState(initialData?.endAt ?? "");
   const [allDay, setAllDay] = useState(initialData?.allDay ?? false);
-  const [type, setType] = useState<
-    "event" | "appointment" | "reminder" | "deadline"
-  >((initialData?.type as any) ?? "event");
+  const [type, setType] = useState<Event["type"]>(
+    (initialData?.type as Event["type"]) ?? "event"
+  );
   const [visibility, setVisibility] = useState<"family" | "personal">(
-    (initialData?.visibility as any) ?? "family"
+    (initialData?.visibility as Event["visibility"]) ?? "family"
   );
   const [assignees, setAssignees] = useState<string[]>(
     initialData?.assignees ?? []
   );
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
@@ -74,8 +75,10 @@ export function EventForm({
       setStartAt(initialData?.startAt ?? "");
       setEndAt(initialData?.endAt ?? "");
       setAllDay(initialData?.allDay ?? false);
-      setType((initialData?.type as any) ?? "event");
-      setVisibility((initialData?.visibility as any) ?? "family");
+      setType((initialData?.type as Event["type"]) ?? "event");
+      setVisibility(
+        (initialData?.visibility as Event["visibility"]) ?? "family"
+      );
       setAssignees(initialData?.assignees ?? []);
       setError(null);
       setFieldErrors({});
@@ -115,7 +118,7 @@ export function EventForm({
       return;
     }
 
-    setLoading(true);
+    setIsLoading(true);
     try {
       if (initialData?.id) {
         await updateEvent(initialData.id, validation.data);
@@ -135,7 +138,7 @@ export function EventForm({
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save event");
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
@@ -229,7 +232,7 @@ export function EventForm({
             <FieldContent>
               <select
                 className="rounded-md border border-input bg-background px-3 py-2 text-sm"
-                onChange={(e) => setType(e.target.value as any)}
+                onChange={(e) => setType(e.target.value as Event["type"])}
                 value={type}
               >
                 <option value="event">Event</option>
@@ -245,7 +248,9 @@ export function EventForm({
             <FieldContent>
               <select
                 className="rounded-md border border-input bg-background px-3 py-2 text-sm"
-                onChange={(e) => setVisibility(e.target.value as any)}
+                onChange={(e) =>
+                  setVisibility(e.target.value as Event["visibility"])
+                }
                 value={visibility}
               >
                 <option value="family">Family</option>
@@ -255,7 +260,7 @@ export function EventForm({
           </Field>
 
           <EventAssigneeSelectorClient
-            disabled={loading}
+            disabled={isLoading}
             members={familyMembers}
             onChange={setAssignees}
             selected={assignees}
@@ -269,15 +274,15 @@ export function EventForm({
 
           <DialogFooter className="gap-2">
             <Button
-              disabled={loading}
+              disabled={isLoading}
               onClick={() => onOpenChange(false)}
               type="button"
               variant="outline"
             >
               Cancel
             </Button>
-            <Button disabled={loading} type="submit">
-              {loading ? (
+            <Button disabled={isLoading} type="submit">
+              {isLoading ? (
                 <>
                   <Spinner className="mr-2 h-4 w-4" />
                   Saving...

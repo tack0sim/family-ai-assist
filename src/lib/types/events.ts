@@ -14,7 +14,7 @@ export interface Event {
   rrule?: string;
   start_at: string;
   title: string;
-  type: string;
+  type: "event" | "appointment" | "reminder" | "deadline";
   updated_at: string;
   visibility: "family" | "personal";
 }

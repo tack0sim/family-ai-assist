@@ -1367,6 +1367,7 @@ export async function updateEvent(eventId: string, data: unknown) {
   }
 
   // Invalidate cache for both old and new date ranges if dates were changed
+  // Also invalidate if any other fields were changed (to ensure fresh data)
   try {
     // Use original dates from the event we fetched before update
     const oldStartDate = new Date(event.start_at);
@@ -1376,18 +1377,13 @@ export async function updateEvent(eventId: string, data: unknown) {
       : oldStartDate;
     const newEndDate = validated.endAt ? new Date(validated.endAt) : oldEndDate;
 
-    // Only invalidate if dates actually changed
-    if (
-      oldStartDate.getTime() !== newStartDate.getTime() ||
-      oldEndDate.getTime() !== newEndDate.getTime()
-    ) {
-      // Invalidate both ranges to cover all affected weeks
-      await invalidateEventsCacheForDateRange(
-        event.family_id,
-        new Date(Math.min(oldStartDate.getTime(), newStartDate.getTime())),
-        new Date(Math.max(oldEndDate.getTime(), newEndDate.getTime()))
-      );
-    }
+    // Invalidate cache for both old and new date ranges
+    // This ensures we clear stale data whether dates changed or other fields changed
+    await invalidateEventsCacheForDateRange(
+      event.family_id,
+      new Date(Math.min(oldStartDate.getTime(), newStartDate.getTime())),
+      new Date(Math.max(oldEndDate.getTime(), newEndDate.getTime()))
+    );
   } catch (cacheError) {
     console.error("Failed to invalidate events cache:", cacheError);
     // Don't fail the operation if cache invalidation fails
