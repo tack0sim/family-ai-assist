@@ -4,7 +4,6 @@ import { EditIcon, XIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { updateEvent } from "@/actions";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -258,6 +257,22 @@ export function EventCardDialog({
             </FieldContent>
           </Field>
 
+          {/* Assignees Field */}
+          <Field>
+            <FieldLabel>Assignees</FieldLabel>
+            <FieldContent>
+              <p className="text-gray-900 text-sm dark:text-gray-100">
+                {event.assignees && event.assignees.length > 0
+                  ? event.assignees
+                      .map((a) => a.profiles?.display_name || "Unknown")
+                      .join(", ")
+                  : "-"}
+              </p>
+
+              {errors.assignees && <FieldError>{errors.assignees}</FieldError>}
+            </FieldContent>
+          </Field>
+
           {/* Type Field */}
           <Field>
             <div className="flex items-center justify-between">
@@ -292,7 +307,9 @@ export function EventCardDialog({
                   <option value="deadline">Deadline</option>
                 </select>
               ) : (
-                <Badge>{formData.type}</Badge>
+                <p className="text-gray-900 text-sm capitalize dark:text-gray-100">
+                  {formData.type}
+                </p>
               )}
               {errors.type && <FieldError>{errors.type}</FieldError>}
             </FieldContent>
@@ -365,7 +382,11 @@ export function EventCardDialog({
                 />
               ) : (
                 <p className="text-gray-900 text-sm dark:text-gray-100">
-                  {new Date(event.event.start_at).toLocaleString()}
+                  {new Date(event.event.start_at).toLocaleDateString("en-US", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: false,
+                  })}
                 </p>
               )}
               {errors.startAt && <FieldError>{errors.startAt}</FieldError>}
@@ -397,7 +418,11 @@ export function EventCardDialog({
                 />
               ) : (
                 <p className="text-gray-900 text-sm dark:text-gray-100">
-                  {new Date(event.event.end_at).toLocaleString()}
+                  {new Date(event.event.end_at).toLocaleDateString("en-US", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: false,
+                  })}
                 </p>
               )}
               {errors.endAt && <FieldError>{errors.endAt}</FieldError>}
@@ -406,30 +431,25 @@ export function EventCardDialog({
 
           {/* All Day Field */}
           <Field orientation="horizontal">
-            <div className="flex items-center justify-between">
-              <label className="flex cursor-pointer items-center gap-2">
-                <input
-                  checked={formData.allDay}
-                  className="h-4 w-4"
-                  onChange={(e) =>
-                    handleFieldChange("allDay", e.target.checked)
-                  }
-                  type="checkbox"
-                />
-                <span className="text-sm">All day event</span>
-              </label>
-              <button
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                onClick={() => toggleEditField("allDay")}
-                type="button"
-              >
-                {editingFields.has("allDay") ? (
-                  <XIcon size={16} />
-                ) : (
-                  <EditIcon size={16} />
-                )}
-              </button>
-            </div>
+            <button
+              className="flex items-center justify-between gap-2"
+              onClick={() => {
+                handleFieldChange("allDay", !formData.allDay);
+                toggleEditField("allDay");
+              }}
+              type="button"
+            >
+              <Input
+                checked={formData.allDay}
+                className="h-4 w-4"
+                onChange={(e) => {
+                  handleFieldChange("allDay", e.target.checked);
+                  toggleEditField("allDay");
+                }}
+                type="checkbox"
+              />
+              <FieldLabel className="text-sm">All day event</FieldLabel>
+            </button>
           </Field>
 
           {/* Footer */}

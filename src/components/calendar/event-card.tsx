@@ -114,7 +114,7 @@ export function EventCard({
     <>
       <div
         className={cn(
-          "flex h-full w-full cursor-pointer flex-col items-start justify-start overflow-hidden rounded-md border border-l-4",
+          "flex h-full w-full cursor-pointer flex-col items-start justify-start gap-1 overflow-hidden rounded-md border border-l-4",
           colors.bg,
           colors.border,
           isMobile ? "p-3" : "p-2"
@@ -130,16 +130,9 @@ export function EventCard({
         tabIndex={0}
       >
         <div
-          className="mb-1 flex w-full flex-col items-start justify-between gap-2"
-          data-slot="event-badge-title"
+          className="flex w-full flex-col items-start justify-between gap-1"
+          data-slot="event-title-time"
         >
-          <Badge
-            className="shrink-0 text-xs"
-            data-slot="event-card-badge"
-            variant={variant}
-          >
-            {event.event.type}
-          </Badge>
           <h3
             className={cn(
               "w-full truncate font-semibold",
@@ -150,34 +143,19 @@ export function EventCard({
           >
             {event.event.title}
           </h3>
+          {!isAllDay && (
+            <p
+              className={cn("text-xs", colors.text, "opacity-75")}
+              data-slot="event-card-time"
+            >
+              {startTime} - {endTime}
+            </p>
+          )}
         </div>
-
-        {!isAllDay && (
-          <p
-            className={cn("text-xs", colors.text, "opacity-75")}
-            data-slot="event-card-time"
-          >
-            {startTime} - {endTime}
-          </p>
-        )}
-
-        {event.event.description && (
-          <p
-            className={cn(
-              "mt-1 text-xs",
-              colors.text,
-              "opacity-75",
-              isMobile ? "line-clamp-3" : "line-clamp-2"
-            )}
-            data-slot="event-card-description"
-          >
-            {event.event.description}
-          </p>
-        )}
 
         {event.assignees && event.assignees.length > 0 && (
           <div
-            className="mt-2 flex flex-wrap gap-1"
+            className="flex flex-wrap gap-1"
             data-slot="event-card-assignees"
           >
             {event.assignees.slice(0, maxAssignees).map((assignee) => {
@@ -199,6 +177,29 @@ export function EventCard({
               </Badge>
             )}
           </div>
+        )}
+
+        {event.event.description && (
+          <p
+            className={cn(
+              "text-xs",
+              colors.text,
+              "opacity-75",
+              isMobile ? "line-clamp-3" : "line-clamp-2"
+            )}
+            data-slot="event-card-description"
+          >
+            {event.event.description}
+          </p>
+        )}
+        {event.event.type && (
+          <Badge
+            className="shrink-0 text-xs"
+            data-slot="event-card-badge"
+            variant={variant}
+          >
+            {event.event.type}
+          </Badge>
         )}
       </div>
       {isDialogOpen && (
