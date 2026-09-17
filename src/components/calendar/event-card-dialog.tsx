@@ -264,7 +264,10 @@ export function EventCardDialog({
               <p className="text-gray-900 text-sm dark:text-gray-100">
                 {event.assignees && event.assignees.length > 0
                   ? event.assignees
-                      .map((a) => a.profiles?.display_name || "Unknown")
+                      .map(
+                        (a) =>
+                          a.profiles?.display_name?.split(" ")[0] || "Unknown"
+                      )
                       .join(", ")
                   : "-"}
               </p>
