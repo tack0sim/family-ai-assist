@@ -1,6 +1,6 @@
 # Family Assist
 
-[![Version: v0.1.0-beta](https://img.shields.io/badge/version-v0.1.0--beta-blue)](./package.json)
+[![Version: v0.4.2-beta](https://img.shields.io/badge/version-v0.4.2--beta-blue)](./package.json)
 [![Status: Beta](https://img.shields.io/badge/status-beta-orange)]()
 [![Node.js: 24+](https://img.shields.io/badge/node.js-24+-green)](./.nvmrc)
 [![TypeScript](https://img.shields.io/badge/typescript-strict-blue)]()
@@ -16,7 +16,7 @@ A privacy-first platform for families to coordinate schedules, communicate via a
 
 ### Prerequisites
 
-- **Node.js** 18+ (see [`.nvmrc`](.nvmrc) for exact version)
+- **Node.js** 24+ (see [`.nvmrc`](.nvmrc) for exact version)
 - **pnpm** (install with `npm install -g pnpm`)
 - **Docker Desktop** running (for local Supabase and Redis)
 - **Supabase CLI** (optional; install with `npm install -g supabase` if you need to push migrations to production)
