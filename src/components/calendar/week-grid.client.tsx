@@ -206,7 +206,7 @@ export function WeekGrid({
             </div>
           )}
 
-          <div className="flex h-[70vh] max-h-[80vh] flex-col overflow-hidden">
+          <div className="flex h-[70vh] max-h-[80vh] flex-col overflow-hidden rounded-sm border border-border">
             {/* Shared horizontal scroll container for headers, all-day bar */}
             <div
               className="no-scrollbar flex flex-col overflow-x-auto overflow-y-hidden"
@@ -214,11 +214,11 @@ export function WeekGrid({
             >
               {/* Day headers with snap points */}
               <div
-                className="flex touch-pan-x snap-x snap-mandatory border-border border-b bg-background"
+                className="flex w-max touch-pan-x bg-background lg:w-full"
                 data-sync-scroll
               >
                 {/* Time column placeholder */}
-                <div className="w-12 flex-shrink-0" />
+                <div className="sticky left-0 z-20 w-12 shrink-0 border-border border-r border-b bg-background lg:static lg:bg-transparent" />
 
                 {/* Day headers */}
                 <div className="relative flex flex-1">
@@ -242,7 +242,7 @@ export function WeekGrid({
             </div>
 
             {/* Timed events grid (vertical scroll for hours, horizontal snap scroll for days) */}
-            <div className="flex-1 overflow-y-auto">
+            <div className="no-scrollbar flex-1 overflow-y-auto">
               <TimedEventGrid
                 breakpoint={breakpoint}
                 dayWidthClass={dayWidthClass}

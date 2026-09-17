@@ -52,11 +52,11 @@ export function TimedEventGrid({
 
   return (
     <div
-      className="no-scrollbar flex touch-pan-x snap-x snap-mandatory overflow-x-auto"
+      className="no-scrollbar flex overflow-x-auto"
       data-timed-grid-scroll
       ref={scrollRef}
     >
-      <div className="flex w-full flex-col">
+      <div className="flex w-max flex-col lg:w-full">
         {hoursSegments.map((segments, hour) => {
           const isLastSlot = hour === 23;
           return (

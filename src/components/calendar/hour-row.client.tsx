@@ -65,7 +65,7 @@ export function HourRow({
       )}
     >
       {/* Time label - fixed left column */}
-      <div className="w-12 flex-shrink-0 bg-muted py-2 text-center text-muted-foreground text-xs">
+      <div className="sticky left-0 z-20 w-12 flex-shrink-0 bg-muted py-2 text-center text-muted-foreground text-xs lg:static">
         {timeStr}
       </div>
 
@@ -77,7 +77,10 @@ export function HourRow({
 
           return (
             <div
-              className={`relative border-border border-r ${dayWidthClass}`}
+              className={cn(
+                `relative snap-start border-border border-r ${dayWidthClass}`,
+                "last:border-r-0"
+              )}
               key={dayIndex}
             >
               {hasEvents ? (

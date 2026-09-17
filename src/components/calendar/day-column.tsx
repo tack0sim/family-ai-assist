@@ -21,7 +21,7 @@ export function DayColumnHeader({
 
   return (
     <div
-      className={`flex flex-col items-center border-border border-r ${bgColor} snap-start px-2 py-3 text-center ${dayWidthClass}`}
+      className={`flex flex-col items-center border-border border-r border-b last:border-r-0 ${bgColor} px-2 py-3 text-center ${dayWidthClass}`}
     >
       <div className={`font-semibold text-sm ${isToday ? "text-primary" : ""}`}>
         {dayName}
