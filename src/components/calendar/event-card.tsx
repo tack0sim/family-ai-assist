@@ -5,12 +5,14 @@ import { Badge } from "@/components/ui/badge";
 import type { ViewportBreakpoint } from "@/hooks/use-responsive-days";
 import type { EventWithDetails } from "@/lib/types/events";
 import { cn } from "@/lib/utils";
+import type { EventSegment } from "@/lib/utils/event-segments";
 import { EventCardDialog } from "./event-card-dialog";
 
 interface EventCardProps {
   breakpoint?: ViewportBreakpoint;
   event: EventWithDetails;
   isAllDay?: boolean;
+  segment?: EventSegment;
 }
 
 const eventTypeColors: Record<
@@ -53,26 +55,60 @@ export function EventCard({
   event,
   isAllDay = false,
   breakpoint = "desktop",
+  segment,
 }: EventCardProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const colors = eventTypeColors[event.event.type] || eventTypeColors.event;
   const variant = eventTypeBadgeVariants[event.event.type] || "default";
 
-  const startTime = new Date(event.event.start_at).toLocaleTimeString("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
+  // Use segment times if available, otherwise use event times
+  let startTime: string;
+  let endTime: string;
 
-  const endTime = new Date(event.event.end_at).toLocaleTimeString("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
+  if (segment) {
+    const startDate = new Date(
+      2024,
+      0,
+      1,
+      segment.startHour,
+      segment.startMinute
+    );
+    const endDate = new Date(2024, 0, 1, segment.endHour, segment.endMinute);
+
+    startTime = startDate.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+
+    endTime = endDate.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+  } else {
+    startTime = new Date(event.event.start_at).toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+
+    endTime = new Date(event.event.end_at).toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+  }
 
   // Responsive sizing
   const isMobile = breakpoint === "mobile";
   const maxAssignees = isMobile ? 3 : 2;
+
+  // Show continuation indicator if multi-day event
+  const isMultiDay = segment && segment.totalSegments > 1;
+  const isFirstSegment = segment && segment.segmentNumber === 1;
+  const isLastSegment =
+    segment && segment.segmentNumber === segment.totalSegments;
 
   return (
     <>

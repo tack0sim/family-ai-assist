@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { useCalendar } from "@/hooks/use-calendar";
@@ -8,12 +8,13 @@ import { useResponsiveDays } from "@/hooks/use-responsive-days";
 import type { CreateEventFormData } from "@/lib/schemas/events";
 import type { EventWithDetails } from "@/lib/types/events";
 import type { FamilyMember } from "@/lib/types/settings";
-import { cn } from "@/lib/utils";
 import { formatDateTimeLocal } from "@/lib/utils/format-datetime-local";
 import { Container } from "../layout/container";
 import { Section } from "../layout/section";
-import { DayColumn } from "./day-column";
+import { AllDayBar } from "./all-day-bar.client";
+import { DayColumnHeader } from "./day-column";
 import { EventForm } from "./event-form.client";
+import { TimedEventGrid } from "./timed-event-grid.client";
 import { WeekNavigation } from "./week-navigation.client";
 
 interface WeekGridProps {
@@ -29,12 +30,16 @@ export function WeekGrid({
 }: WeekGridProps) {
   const { state, setLoading, setEvents } = useCalendar();
   const { currentWeekStart, events, loading, error } = state;
-  const { breakpoint, visibleDays, dayWidthClass } = useResponsiveDays();
+  const { breakpoint, dayWidthClass } = useResponsiveDays();
 
   const [formOpen, setFormOpen] = useState(false);
   const [initialFormData, setInitialFormData] = useState<
     Partial<CreateEventFormData> | undefined
   >();
+
+  const headersScrollRef = useRef<HTMLDivElement>(null);
+  const timedGridScrollRef = useRef<HTMLDivElement>(null);
+  const isScrollingSyncRef = useRef(false);
 
   const handleWeekChange = useCallback(
     async (newWeekStart: Date) => {
@@ -69,26 +74,51 @@ export function WeekGrid({
     setInitialFormData(undefined);
   };
 
-  function getEventsForDay(date: Date): {
-    allDay: EventWithDetails[];
-    timed: EventWithDetails[];
-  } {
-    const dayStart = new Date(date);
-    dayStart.setHours(0, 0, 0, 0);
-    const dayEnd = new Date(date);
-    dayEnd.setHours(23, 59, 59, 999);
+  // Set up bidirectional scroll synchronization
+  useEffect(() => {
+    const headersEl = headersScrollRef.current;
+    const timedGridEl = timedGridScrollRef.current;
 
-    const dayEvents = events.filter((e) => {
-      const eventStart = new Date(e.event.start_at);
-      const eventEnd = new Date(e.event.end_at);
-      return eventStart <= dayEnd && eventEnd >= dayStart;
+    if (!(headersEl && timedGridEl)) {
+      return;
+    }
+
+    const syncScroll = (sourceEl: HTMLDivElement, targetEl: HTMLDivElement) => {
+      return () => {
+        if (isScrollingSyncRef.current) {
+          return;
+        }
+        isScrollingSyncRef.current = true;
+
+        targetEl.scrollLeft = sourceEl.scrollLeft;
+
+        // Also sync the inner sync-scroll elements
+        const allScrollables = headersEl.querySelectorAll("[data-sync-scroll]");
+        allScrollables.forEach((el) => {
+          (el as HTMLDivElement).scrollLeft = sourceEl.scrollLeft;
+        });
+
+        setTimeout(() => {
+          isScrollingSyncRef.current = false;
+        }, 0);
+      };
+    };
+
+    const handleHeadersScroll = syncScroll(headersEl, timedGridEl);
+    const handleTimedGridScroll = syncScroll(timedGridEl, headersEl);
+
+    headersEl.addEventListener("scroll", handleHeadersScroll, {
+      passive: true,
+    });
+    timedGridEl.addEventListener("scroll", handleTimedGridScroll, {
+      passive: true,
     });
 
-    return {
-      allDay: dayEvents.filter((e) => e.event.all_day),
-      timed: dayEvents.filter((e) => !e.event.all_day),
+    return () => {
+      headersEl.removeEventListener("scroll", handleHeadersScroll);
+      timedGridEl.removeEventListener("scroll", handleTimedGridScroll);
     };
-  }
+  }, []);
 
   function isToday(date: Date): boolean {
     const today = new Date();
@@ -99,14 +129,57 @@ export function WeekGrid({
     );
   }
 
+  // Separate all-day and timed events by day
+  function getEventsByDay(): {
+    allDay: Map<number, EventWithDetails[]>;
+    timed: EventWithDetails[];
+  } {
+    const allDayByDay = new Map<number, EventWithDetails[]>();
+    const timedEvents: EventWithDetails[] = [];
+
+    for (let i = 0; i < 7; i++) {
+      allDayByDay.set(i, []);
+    }
+
+    for (const event of events) {
+      const eventStart = new Date(event.event.start_at);
+      const eventEnd = new Date(event.event.end_at);
+
+      if (event.event.all_day) {
+        // Find which days this all-day event spans
+        const current = new Date(eventStart);
+        current.setHours(0, 0, 0, 0);
+
+        while (current < eventEnd) {
+          const dayIndex = Math.floor(
+            (current.getTime() - currentWeekStart.getTime()) /
+              (24 * 60 * 60 * 1000)
+          );
+
+          if (dayIndex >= 0 && dayIndex < 7) {
+            const dayEvents = allDayByDay.get(dayIndex) || [];
+            dayEvents.push(event);
+            allDayByDay.set(dayIndex, dayEvents);
+          }
+
+          current.setDate(current.getDate() + 1);
+        }
+      } else {
+        timedEvents.push(event);
+      }
+    }
+
+    return { allDay: allDayByDay, timed: timedEvents };
+  }
+
   // Generate all 7 days of the week
-  // Note: All 7 days are always rendered. On mobile/tablet, days beyond the
-  // visible count (e.g., Sat/Sun on tablet) are scrollable off-screen.
   const days = Array.from({ length: 7 }, (_, i) => {
     const date = new Date(currentWeekStart);
     date.setDate(date.getDate() + i);
     return date;
   });
+
+  const { allDay: allDayEvents, timed: timedEvents } = getEventsByDay();
 
   if (error) {
     return (
@@ -133,30 +206,52 @@ export function WeekGrid({
             </div>
           )}
 
-          <div
-            className={cn(
-              "no-scrollbar flex h-[80vh] max-h-[80vh] flex-1 overflow-x-auto overflow-y-auto rounded-sm border-border border-y border-l",
-              "scroll-smooth"
-            )}
-          >
-            {days.map((date) => {
-              const { allDay, timed } = getEventsForDay(date);
-              return (
-                <div
-                  className={cn("flex-shrink-0", dayWidthClass)}
-                  key={date.toISOString()}
-                >
-                  <DayColumn
-                    allDayEvents={allDay}
-                    breakpoint={breakpoint}
-                    date={date}
-                    isToday={isToday(date)}
-                    onTimeSlotClick={handleTimeSlotClick}
-                    timedEvents={timed}
-                  />
+          <div className="flex h-[70vh] max-h-[80vh] flex-col overflow-hidden">
+            {/* Shared horizontal scroll container for headers, all-day bar */}
+            <div
+              className="no-scrollbar flex flex-col overflow-x-auto overflow-y-hidden"
+              ref={headersScrollRef}
+            >
+              {/* Day headers with snap points */}
+              <div
+                className="flex touch-pan-x snap-x snap-mandatory border-border border-b bg-background"
+                data-sync-scroll
+              >
+                {/* Time column placeholder */}
+                <div className="w-12 flex-shrink-0" />
+
+                {/* Day headers */}
+                <div className="relative flex flex-1">
+                  {days.map((date, i) => (
+                    <DayColumnHeader
+                      date={date}
+                      dayWidthClass={dayWidthClass}
+                      isToday={isToday(date)}
+                      key={date.toISOString()}
+                    />
+                  ))}
                 </div>
-              );
-            })}
+              </div>
+
+              {/* All-day events bar (scrolls horizontally with grid) */}
+              <AllDayBar
+                breakpoint={breakpoint}
+                dayWidthClass={dayWidthClass}
+                events={allDayEvents}
+              />
+            </div>
+
+            {/* Timed events grid (vertical scroll for hours, horizontal snap scroll for days) */}
+            <div className="flex-1 overflow-y-auto">
+              <TimedEventGrid
+                breakpoint={breakpoint}
+                dayWidthClass={dayWidthClass}
+                events={timedEvents}
+                onTimeSlotClick={handleTimeSlotClick}
+                scrollRef={timedGridScrollRef}
+                weekStart={currentWeekStart}
+              />
+            </div>
           </div>
 
           <EventForm
