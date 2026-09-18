@@ -150,7 +150,7 @@ export async function submitBetaConsent(invitationToken?: string) {
   }
 
   // Check if user has family context
-  const hasFamily = await checkUserFamilyContext();
+  const hasFamily = await checkUserFamilyContext(user.id);
   let destination = hasFamily ? "/" : "/onboarding";
 
   if (invitationToken && !hasFamily) {
@@ -195,7 +195,7 @@ export async function signIn(formData: FormData, invitationToken?: string) {
   }
 
   // Check if user has family context
-  const hasFamily = await checkUserFamilyContext();
+  const hasFamily = await checkUserFamilyContext(data.user.id);
   let destination = hasFamily ? "/" : "/onboarding";
 
   if (!hasFamily && invitationToken) {
@@ -351,7 +351,7 @@ export async function autoAcceptInvitation(token: string) {
   }
 
   // Check if user already has any families
-  const hasFamily = await checkUserFamilyContext();
+  const hasFamily = await checkUserFamilyContext(userId);
   if (hasFamily) {
     throw new Error(
       "You can only auto-accept invitations when joining your first family. Please use the join form for additional families."

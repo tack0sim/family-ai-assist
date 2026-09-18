@@ -5,6 +5,7 @@ import { Section } from "@/components/layout/section";
 import { CreateFamilyForm } from "@/components/onboarding/create-family-form.client";
 import { InvitationHandler } from "@/components/onboarding/invitation-handler.client";
 import { checkUserFamilyContext } from "@/lib/supabase/check-family";
+import { hasBetaConsentAgreed } from "@/lib/supabase/profile";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -23,34 +24,22 @@ export const metadata: Metadata = {
 export default async function OnboardingPage() {
   // Check if user is authenticated
   const supabase = await createClient();
-  const { data } = await supabase.auth.getClaims();
-
-  const isAuthenticated = !!data?.claims;
+  const { data: userData } = await supabase.auth.getUser();
+  const user = userData?.user;
 
   // Redirect to login if not authenticated
-  if (!isAuthenticated) {
+  if (!user) {
     redirect("/auth/login?next=/onboarding");
   }
 
   // Check if user has accepted beta testing consent
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (user) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("beta_consent_agreed")
-      .eq("id", user.id)
-      .single();
-
-    if (!profile?.beta_consent_agreed) {
-      redirect("/auth/consent");
-    }
+  const hasBetaConsent = await hasBetaConsentAgreed(user.id);
+  if (!hasBetaConsent) {
+    redirect("/auth/consent");
   }
 
   // Redirect to home if user already has family context
-  const hasFamily = await checkUserFamilyContext();
+  const hasFamily = await checkUserFamilyContext(user.id);
   if (hasFamily) {
     redirect("/");
   }

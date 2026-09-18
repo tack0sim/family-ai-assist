@@ -3,6 +3,7 @@
 import type { User } from "@supabase/supabase-js";
 import { GalleryVerticalEndIcon } from "lucide-react";
 import type * as React from "react";
+import { Suspense } from "react";
 import { NavMain } from "@/components/nav-main.client";
 import { NavUser } from "@/components/nav-user.client";
 import { TeamSwitcher } from "@/components/team-switcher.client";
@@ -13,6 +14,7 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar";
+import { Spinner } from "./ui/spinner";
 
 // This is sample data.
 const data = {
@@ -35,6 +37,14 @@ const data = {
   ],
 };
 
+function NavUserSkeleton() {
+  return (
+    <div className="flex h-10 items-center justify-center px-4">
+      <Spinner />
+    </div>
+  );
+}
+
 export function AppSidebar({
   user,
   ...props
@@ -48,7 +58,9 @@ export function AppSidebar({
         <NavMain />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={user} />
+        <Suspense fallback={<NavUserSkeleton />}>
+          <NavUser user={user} />
+        </Suspense>
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

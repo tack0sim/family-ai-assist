@@ -43,16 +43,16 @@ async function SettingsContentWrapper() {
 export default async function SettingsPage() {
   // Check if user is authenticated
   const supabase = await createClient();
-  const { data } = await supabase.auth.getClaims();
-  const isAuthenticated = !!data?.claims;
+  const { data: userData } = await supabase.auth.getUser();
+  const user = userData?.user;
 
   // Redirect to login if not authenticated
-  if (!isAuthenticated) {
+  if (!user) {
     redirect("/auth/login?next=/settings");
   }
 
   // Redirect to onboarding if user doesn't have family context
-  const hasFamily = await checkUserFamilyContext();
+  const hasFamily = await checkUserFamilyContext(user.id);
   if (!hasFamily) {
     redirect("/onboarding");
   }

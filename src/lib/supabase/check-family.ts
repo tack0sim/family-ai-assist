@@ -1,6 +1,5 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 
 /**
@@ -10,14 +9,10 @@ import { createServiceRoleClient } from "@/lib/supabase/service";
  *
  * Uses service role client to bypass RLS and avoid policy recursion.
  * Returns true if the user has any of these conditions.
+ *
+ * @param userId - The user ID to check (passed from caller to avoid redundant getUser() calls)
  */
-export async function checkUserFamilyContext(): Promise<boolean> {
-  const supabase = await createClient();
-
-  // Get authenticated user from session
-  const { data: userData } = await supabase.auth.getUser();
-  const userId = userData?.user?.id;
-
+export async function checkUserFamilyContext(userId: string): Promise<boolean> {
   if (!userId) {
     return false;
   }

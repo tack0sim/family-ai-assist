@@ -23,6 +23,11 @@ import { SignOutButton } from "./auth/signout-button.client";
 export function NavUser({ user }: { user?: User }) {
   const { isMobile } = useSidebar();
 
+  // Return null if user is not provided (for Suspense fallback)
+  if (!user) {
+    return null;
+  }
+
   const userName = getUserDisplayName(user);
   const userInitials = userName
     ?.split(" ")
@@ -62,40 +67,36 @@ export function NavUser({ user }: { user?: User }) {
             side={isMobile ? "bottom" : "right"}
             sideOffset={4}
           >
-            {user && (
-              <>
-                <DropdownMenuLabel className="p-0 font-normal">
-                  <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                    <Avatar className="h-8 w-8 rounded-full">
-                      {userImage ? (
-                        <AvatarImage alt={userName} src={userImage} />
-                      ) : null}
-                      <AvatarFallback className="rounded-full">
-                        {userInitials}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="grid flex-1 text-left text-sm leading-tight">
-                      <span className="truncate font-medium">{userName}</span>
-                      <span className="truncate text-xs">{userEmail}</span>
-                    </div>
-                  </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {/* <DropdownMenuGroup>
-                  <DropdownMenuItem>
-                    <BellIcon />
-                    Notifications
-                  </DropdownMenuItem>
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator /> */}
-                <DropdownMenuItem>
-                  <SignOutButton
-                    className="flex w-full justify-start gap-1 p-0"
-                    variantOverride="ghost"
-                  />
-                </DropdownMenuItem>
-              </>
-            )}
+            <DropdownMenuLabel className="p-0 font-normal">
+              <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+                <Avatar className="h-8 w-8 rounded-full">
+                  {userImage ? (
+                    <AvatarImage alt={userName} src={userImage} />
+                  ) : null}
+                  <AvatarFallback className="rounded-full">
+                    {userInitials}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="grid flex-1 text-left text-sm leading-tight">
+                  <span className="truncate font-medium">{userName}</span>
+                  <span className="truncate text-xs">{userEmail}</span>
+                </div>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {/* <DropdownMenuGroup>
+              <DropdownMenuItem>
+                <BellIcon />
+                Notifications
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator /> */}
+            <DropdownMenuItem>
+              <SignOutButton
+                className="flex w-full justify-start gap-1 p-0"
+                variantOverride="ghost"
+              />
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>

@@ -38,18 +38,20 @@ async function CalendarView({ userId }: { userId: User["id"] }) {
   const { familyId } = await getUserFamilyMembership(userId);
   const { weekStart, weekEnd } = getWeekBoundaries(new Date());
 
-  const result = await getEvents(familyId, {
-    startAt: weekStart.toISOString(),
-    endAt: weekEnd.toISOString(),
-  });
-
-  const familyMembers = await getFamilyMembers(familyId);
+  // Parallelize event and member fetches
+  const [eventsResult, membersResult] = await Promise.all([
+    getEvents(familyId, {
+      startAt: weekStart.toISOString(),
+      endAt: weekEnd.toISOString(),
+    }),
+    getFamilyMembers(familyId),
+  ]);
 
   return (
     <CalendarContainer
-      events={formatEventResponse(result.data)}
+      events={formatEventResponse(eventsResult.data)}
       familyId={familyId}
-      familyMembers={familyMembers}
+      familyMembers={membersResult}
       onWeekChange={fetchEventsByWeek}
     />
   );
@@ -57,24 +59,20 @@ async function CalendarView({ userId }: { userId: User["id"] }) {
 
 export default async function Home() {
   const supabase = await createClient();
-  const { data: isAuthenticated } = await supabase.auth.getClaims();
 
-  if (!isAuthenticated) {
-    return <LandingPage />;
-  }
-
-  // Check if the user has a family context
-  const hasFamily = await checkUserFamilyContext();
-  if (!hasFamily) {
-    redirect("/onboarding");
-  }
-
-  // Fetch the authenticated user data to get the user ID
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const userId = user?.id;
+  if (!user) {
+    return <LandingPage />;
+  }
+
+  // If authenticated but no family context, redirect to onboarding
+  const hasFamily = await checkUserFamilyContext(user.id);
+  if (!hasFamily) {
+    redirect("/onboarding");
+  }
 
   return (
     <CalendarProvider>
@@ -85,7 +83,7 @@ export default async function Home() {
           </div>
         }
       >
-        {userId && <CalendarView userId={userId} />}
+        <CalendarView userId={user.id} />
       </Suspense>
     </CalendarProvider>
   );

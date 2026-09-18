@@ -6,24 +6,32 @@ interface AuthenticatedLayoutProps {
   children: React.ReactNode;
 }
 
+/**
+ * Layout wrapper for the (frontend) route group.
+ * Renders sidebar + inset for authenticated users with family context.
+ *
+ * Does NOT enforce auth/family checks here—those are handled by individual page components
+ * (onboarding, settings) to avoid redirect loops with pages that don't require family context.
+ */
 export async function AuthenticatedLayout({
   children,
 }: AuthenticatedLayoutProps) {
   const supabase = await createClient();
-  const { data } = await supabase.auth.getClaims();
 
-  const isAuthenticated = !!data?.claims;
+  // Get user if authenticated
+  const { data: userData } = await supabase.auth.getUser();
+  const user = userData?.user;
 
-  if (!isAuthenticated) {
+  // If not authenticated, return simple layout without sidebar
+  if (!user) {
     return <div className="flex grow flex-col">{children}</div>;
   }
 
-  // Fetch user data only if authenticated
-  const { data: userData } = await supabase.auth.getUser();
-
+  // If authenticated, render sidebar + inset
+  // Individual pages handle family context checks and redirects
   return (
     <>
-      {userData.user && <AppSidebar user={userData.user} />}
+      <AppSidebar user={user} />
       <SidebarInset>{children}</SidebarInset>
     </>
   );

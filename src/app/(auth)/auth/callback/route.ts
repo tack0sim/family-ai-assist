@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { checkUserFamilyContext } from "@/lib/supabase/check-family";
+import { hasBetaConsentAgreed } from "@/lib/supabase/profile";
 import { createClient } from "@/lib/supabase/server";
 import { getBaseURL } from "@/lib/utils/get-base-url";
 
@@ -27,14 +28,10 @@ export async function GET(request: Request) {
       } = await supabase.auth.getUser();
 
       if (user) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("beta_consent_agreed")
-          .eq("id", user.id)
-          .single();
+        const hasBetaConsent = await hasBetaConsentAgreed(user.id);
 
-        // If consent not yet given (null or false), redirect to consent page
-        if (!profile?.beta_consent_agreed) {
+        // If consent not yet given, redirect to consent page
+        if (!hasBetaConsent) {
           const baseUrl = getBaseURL(request.headers);
           let consentRedirect = "/auth/consent";
           if (invitationToken) {
@@ -42,18 +39,18 @@ export async function GET(request: Request) {
           }
           return NextResponse.redirect(`${baseUrl}${consentRedirect}`);
         }
+
+        // Check if user has family context
+        const hasFamily = await checkUserFamilyContext(user.id);
+        let destination = hasFamily ? next : "/onboarding";
+
+        if (invitationToken && !hasFamily) {
+          destination += `?invitation_token=${encodeURIComponent(invitationToken)}`;
+        }
+
+        const baseUrl = getBaseURL(request.headers);
+        return NextResponse.redirect(`${baseUrl}${destination}`);
       }
-
-      // Check if user has family context
-      const hasFamily = await checkUserFamilyContext();
-      let destination = hasFamily ? next : "/onboarding";
-
-      if (invitationToken && !hasFamily) {
-        destination += `?invitation_token=${encodeURIComponent(invitationToken)}`;
-      }
-
-      const baseUrl = getBaseURL(request.headers);
-      return NextResponse.redirect(`${baseUrl}${destination}`);
     }
   }
 
