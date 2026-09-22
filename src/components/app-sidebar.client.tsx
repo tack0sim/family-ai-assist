@@ -55,7 +55,7 @@ export function AppSidebar({
   userPromise,
   ...props
 }: React.ComponentProps<typeof Sidebar> & {
-  userPromise: Promise<User | null>;
+  userPromise: Promise<User>;
 }) {
   return (
     <Sidebar collapsible="icon" {...props}>

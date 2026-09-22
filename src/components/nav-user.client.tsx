@@ -22,7 +22,7 @@ import { getUserAvatarUrl, getUserDisplayName } from "@/lib/supabase/user";
 import { SignOutButton } from "./auth/signout-button.client";
 
 interface NavUserProps {
-  userPromise: Promise<User | null>;
+  userPromise: Promise<User>;
 }
 
 /**
@@ -33,6 +33,8 @@ interface NavUserProps {
  * This ensures server-side auth check happens in parallel with page data fetch.
  * React's cache() memoization ensures the promise is shared with page.tsx (no duplicate fetch).
  *
+ * If the promise rejects (auth failure), the error propagates to the nearest error boundary.
+ *
  * Performance: ~50-100ms (server-side auth), parallel with calendar data.
  */
 export function NavUser({ userPromise }: NavUserProps) {
@@ -41,11 +43,6 @@ export function NavUser({ userPromise }: NavUserProps) {
   // use() unwraps the promise from server
   // Suspends if pending, returns user when resolved, throws on error
   const user = use(userPromise);
-
-  // Return null if not authenticated (Suspense skeleton will show)
-  if (!user) {
-    return null;
-  }
 
   const userName = getUserDisplayName(user);
   const userInitials = userName
