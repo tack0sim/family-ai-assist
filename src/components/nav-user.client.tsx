@@ -2,6 +2,7 @@
 
 import type { User } from "@supabase/supabase-js";
 import { ChevronsUpDownIcon } from "lucide-react";
+import { use } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -20,10 +21,28 @@ import {
 import { getUserAvatarUrl, getUserDisplayName } from "@/lib/supabase/user";
 import { SignOutButton } from "./auth/signout-button.client";
 
-export function NavUser({ user }: { user?: User }) {
+interface NavUserProps {
+  userPromise: Promise<User | null>;
+}
+
+/**
+ * NavUser fetches user identity (name, email, avatar) using server-initiated promise.
+ * Suspends while the promise is in flight, Suspense boundary shows skeleton.
+ *
+ * The userPromise comes from AuthenticatedLayout calling getCachedUser() without awaiting.
+ * This ensures server-side auth check happens in parallel with page data fetch.
+ * React's cache() memoization ensures the promise is shared with page.tsx (no duplicate fetch).
+ *
+ * Performance: ~50-100ms (server-side auth), parallel with calendar data.
+ */
+export function NavUser({ userPromise }: NavUserProps) {
   const { isMobile } = useSidebar();
 
-  // Return null if user is not provided (for Suspense fallback)
+  // use() unwraps the promise from server
+  // Suspends if pending, returns user when resolved, throws on error
+  const user = use(userPromise);
+
+  // Return null if not authenticated (Suspense skeleton will show)
   if (!user) {
     return null;
   }

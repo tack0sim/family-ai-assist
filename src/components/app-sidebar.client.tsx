@@ -12,9 +12,11 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
+  SidebarMenu,
+  SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar";
-import { Spinner } from "./ui/spinner";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // This is sample data.
 const data = {
@@ -24,31 +26,37 @@ const data = {
       logo: <GalleryVerticalEndIcon />,
       plan: "Enterprise",
     },
-    // {
-    //   name: "Acme Corp.",
-    //   logo: <AudioLinesIcon />,
-    //   plan: "Startup",
-    // },
-    // {
-    //   name: "Evil Corp.",
-    //   logo: <TerminalIcon />,
-    //   plan: "Free",
-    // },
   ],
 };
 
 function NavUserSkeleton() {
   return (
-    <div className="flex h-10 items-center justify-center px-4">
-      <Spinner />
-    </div>
+    <SidebarMenu>
+      <SidebarMenuItem>
+        <div className="flex items-center gap-2 px-2 py-1.5">
+          {/* Avatar skeleton */}
+          <Skeleton className="h-8 w-8 shrink-0 rounded-full" />
+
+          {/* Name and email skeleton */}
+          <div className="grid flex-1 gap-2 text-left">
+            <Skeleton className="h-4 w-24 rounded" />
+            <Skeleton className="h-3 w-32 rounded" />
+          </div>
+
+          {/* Chevron icon skeleton */}
+          <Skeleton className="ml-auto h-4 w-4 rounded" />
+        </div>
+      </SidebarMenuItem>
+    </SidebarMenu>
   );
 }
 
 export function AppSidebar({
-  user,
+  userPromise,
   ...props
-}: React.ComponentProps<typeof Sidebar> & { user?: User }) {
+}: React.ComponentProps<typeof Sidebar> & {
+  userPromise: Promise<User | null>;
+}) {
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
@@ -59,7 +67,7 @@ export function AppSidebar({
       </SidebarContent>
       <SidebarFooter>
         <Suspense fallback={<NavUserSkeleton />}>
-          <NavUser user={user} />
+          <NavUser userPromise={userPromise} />
         </Suspense>
       </SidebarFooter>
       <SidebarRail />
