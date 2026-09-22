@@ -514,7 +514,10 @@ describe("Family Management - autoAcceptInvitation", () => {
 
     vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
     vi.mocked(createServiceRoleClient).mockReturnValue(mockServiceClient);
-    vi.mocked(checkUserFamilyContext).mockResolvedValue(false);
+    vi.mocked(checkUserFamilyContext).mockResolvedValue({
+      familyId: "",
+      exists: false,
+    });
     vi.mocked(redirect).mockImplementation(() => {
       throw new Error("REDIRECT_/");
     });
@@ -553,7 +556,10 @@ describe("Family Management - autoAcceptInvitation", () => {
     };
 
     vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
-    vi.mocked(checkUserFamilyContext).mockResolvedValue(true);
+    vi.mocked(checkUserFamilyContext).mockResolvedValue({
+      familyId: "family-123",
+      exists: true,
+    });
 
     // Act & Assert
     await expect(autoAcceptInvitation(token)).rejects.toThrow(
@@ -631,7 +637,10 @@ describe("Family Management - autoAcceptInvitation", () => {
 
     vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
     vi.mocked(createServiceRoleClient).mockReturnValue(mockServiceClient);
-    vi.mocked(checkUserFamilyContext).mockResolvedValue(false);
+    vi.mocked(checkUserFamilyContext).mockResolvedValue({
+      familyId: "",
+      exists: false,
+    });
 
     // Act & Assert
     await expect(autoAcceptInvitation(token)).rejects.toThrow(
@@ -689,7 +698,10 @@ describe("Family Management - autoAcceptInvitation", () => {
 
     vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
     vi.mocked(createServiceRoleClient).mockReturnValue(mockServiceClient);
-    vi.mocked(checkUserFamilyContext).mockResolvedValue(false);
+    vi.mocked(checkUserFamilyContext).mockResolvedValue({
+      familyId: "",
+      exists: false,
+    });
 
     // Act & Assert
     await expect(autoAcceptInvitation(token)).rejects.toThrow(
@@ -747,7 +759,10 @@ describe("Family Management - autoAcceptInvitation", () => {
 
     vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
     vi.mocked(createServiceRoleClient).mockReturnValue(mockServiceClient);
-    vi.mocked(checkUserFamilyContext).mockResolvedValue(false);
+    vi.mocked(checkUserFamilyContext).mockResolvedValue({
+      familyId: "",
+      exists: false,
+    });
 
     // Act & Assert
     await expect(autoAcceptInvitation(token)).rejects.toThrow(
@@ -1771,7 +1786,10 @@ describe("Auth - Family Context Checks", () => {
 
       vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
       vi.mocked(createServiceRoleClient).mockReturnValue(mockServiceClient);
-      vi.mocked(checkUserFamilyContext).mockResolvedValue(false);
+      vi.mocked(checkUserFamilyContext).mockResolvedValue({
+        familyId: "",
+        exists: false,
+      });
       vi.mocked(redirect).mockImplementation(() => {
         throw new Error("REDIRECT_/onboarding");
       });
@@ -1829,7 +1847,10 @@ describe("Auth - Family Context Checks", () => {
 
       vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
       vi.mocked(createServiceRoleClient).mockReturnValue(mockServiceClient);
-      vi.mocked(checkUserFamilyContext).mockResolvedValue(true);
+      vi.mocked(checkUserFamilyContext).mockResolvedValue({
+        familyId: "family-123",
+        exists: true,
+      });
       vi.mocked(redirect).mockImplementation(() => {
         throw new Error("REDIRECT_/");
       });
@@ -2328,7 +2349,10 @@ describe("Auth - Family Context Checks", () => {
 
       vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
       vi.mocked(createServiceRoleClient).mockReturnValue(mockServiceClient);
-      vi.mocked(checkUserFamilyContext).mockResolvedValue(true);
+      vi.mocked(checkUserFamilyContext).mockResolvedValue({
+        familyId: "family-123",
+        exists: true,
+      });
       vi.mocked(redirect).mockImplementation(() => {
         throw new Error("REDIRECT_/");
       });
