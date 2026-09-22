@@ -1,4 +1,3 @@
-import type { User } from "@supabase/supabase-js";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
@@ -7,11 +6,9 @@ import { CalendarContainer } from "@/components/calendar/calendar-container.clie
 import { LandingPage } from "@/components/landing-page";
 import { Spinner } from "@/components/ui/spinner";
 import { CalendarProvider } from "@/lib/calendar-provider";
+import { getCachedUser } from "@/lib/supabase/cached";
 import { checkUserFamilyContext } from "@/lib/supabase/check-family";
-import {
-  getFamilyMembers,
-  getUserFamilyMembership,
-} from "@/lib/supabase/family";
+import { getFamilyMembers } from "@/lib/supabase/family";
 import { createClient } from "@/lib/supabase/server";
 import { getWeekBoundaries } from "@/lib/utils/date";
 import { formatEventResponse } from "@/lib/utils/format-events";
@@ -30,12 +27,11 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-async function CalendarView({ userId }: { userId: User["id"] }) {
-  if (!userId) {
-    throw new Error("Not authenticated");
+async function CalendarView({ familyId }: { familyId: string }) {
+  if (!familyId) {
+    throw new Error("No family context");
   }
 
-  const { familyId } = await getUserFamilyMembership(userId);
   const { weekStart, weekEnd } = getWeekBoundaries(new Date());
 
   // Parallelize event and member fetches
@@ -60,17 +56,21 @@ async function CalendarView({ userId }: { userId: User["id"] }) {
 export default async function Home() {
   const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Fast unauth detection - no DB hit for landing page users
+  const { data } = await supabase.auth.getClaims();
+  const isAuthenticated = !!data?.claims;
 
-  if (!user) {
+  if (!isAuthenticated) {
     return <LandingPage />;
   }
 
-  // If authenticated but no family context, redirect to onboarding
-  const hasFamily = await checkUserFamilyContext(user.id);
-  if (!hasFamily) {
+  // If claims exist, get the cached user (populated by middleware)
+  const user = await getCachedUser();
+
+  // Check family context and get familyId
+  const familyContext = await checkUserFamilyContext(user.id);
+
+  if (!familyContext.exists) {
     redirect("/onboarding");
   }
 
@@ -83,7 +83,7 @@ export default async function Home() {
           </div>
         }
       >
-        <CalendarView userId={user.id} />
+        <CalendarView familyId={familyContext.familyId} />
       </Suspense>
     </CalendarProvider>
   );
