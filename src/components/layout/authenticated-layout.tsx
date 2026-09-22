@@ -10,6 +10,9 @@ interface AuthenticatedLayoutProps {
  * Layout wrapper for the (frontend) route group.
  * Renders sidebar + inset for authenticated users with family context.
  *
+ * Uses proxy-verified auth state (getClaims) for immediate sidebar render (~50-100ms),
+ * without DB round-trips. NavUser child component suspends independently to fetch full user data.
+ *
  * Does NOT enforce auth/family checks here—those are handled by individual page components
  * (onboarding, settings) to avoid redirect loops with pages that don't require family context.
  */
@@ -18,20 +21,21 @@ export async function AuthenticatedLayout({
 }: AuthenticatedLayoutProps) {
   const supabase = await createClient();
 
-  // Get user if authenticated
-  const { data: userData } = await supabase.auth.getUser();
-  const user = userData?.user;
+  // Fast auth check using proxy-verified cookies (no DB hit)
+  const { data } = await supabase.auth.getClaims();
+  const isAuthenticated = !!data?.claims;
 
   // If not authenticated, return simple layout without sidebar
-  if (!user) {
+  if (!isAuthenticated) {
     return <div className="flex grow flex-col">{children}</div>;
   }
 
-  // If authenticated, render sidebar + inset
+  // If authenticated, render sidebar + inset immediately
+  // NavUser suspends independently to fetch full user data
   // Individual pages handle family context checks and redirects
   return (
     <>
-      <AppSidebar user={user} />
+      <AppSidebar />
       <SidebarInset>{children}</SidebarInset>
     </>
   );
