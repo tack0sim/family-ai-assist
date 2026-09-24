@@ -41,10 +41,12 @@ export async function GET(request: Request) {
         }
 
         // Check if user has family context
-        const hasFamily = await checkUserFamilyContext(user.id);
-        let destination = hasFamily ? next : "/onboarding";
+        const { exists: hasFamilyContext } = await checkUserFamilyContext(
+          user.id
+        );
+        let destination = hasFamilyContext ? next : "/onboarding";
 
-        if (invitationToken && !hasFamily) {
+        if (invitationToken && !hasFamilyContext) {
           destination += `?invitation_token=${encodeURIComponent(invitationToken)}`;
         }
 

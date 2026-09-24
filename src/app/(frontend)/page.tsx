@@ -68,9 +68,11 @@ export default async function Home() {
   const user = await getCachedUser();
 
   // Check family context and get familyId
-  const familyContext = await checkUserFamilyContext(user.id);
+  const { exists: hasFamilyContext, familyId } = await checkUserFamilyContext(
+    user.id
+  );
 
-  if (!familyContext.exists) {
+  if (!hasFamilyContext) {
     redirect("/onboarding");
   }
 
@@ -83,7 +85,7 @@ export default async function Home() {
           </div>
         }
       >
-        <CalendarView familyId={familyContext.familyId} />
+        <CalendarView familyId={familyId} />
       </Suspense>
     </CalendarProvider>
   );

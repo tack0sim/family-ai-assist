@@ -39,8 +39,8 @@ export default async function OnboardingPage() {
   }
 
   // Redirect to home if user already has family context
-  const hasFamily = await checkUserFamilyContext(user.id);
-  if (hasFamily) {
+  const { exists: hasFamilyContext } = await checkUserFamilyContext(user.id);
+  if (hasFamilyContext) {
     redirect("/");
   }
 
