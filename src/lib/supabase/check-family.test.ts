@@ -152,8 +152,8 @@ describe("checkUserFamilyContext", () => {
     });
   });
 
-  describe("backward compatibility with boolean return", () => {
-    it("should be explicitly typed as FamilyContext return type", async () => {
+  describe("FamilyContext return type validation", () => {
+    it("should return typed FamilyContext object with familyId and exists properties", async () => {
       const mockClient = createMockServiceClient({ id: mockFamilyId });
       vi.mocked(serviceModule.createServiceRoleClient).mockReturnValue(
         mockClient as any
