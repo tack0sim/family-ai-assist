@@ -182,6 +182,8 @@ describe("getFamilyMembers", () => {
       joined_at: "2024-01-01T00:00:00Z",
       display_name: "Admin User",
       email: undefined,
+      is_child: false,
+      avatar_url: undefined,
     });
   });
 

@@ -19,6 +19,7 @@ import {
   createChildProfileSchema,
   eventTagSchema,
 } from "@/lib/schemas/settings";
+import { getCachedUser } from "@/lib/supabase/cached";
 import { checkUserFamilyContext } from "@/lib/supabase/check-family";
 import {
   getFamilyMembers,
@@ -1682,13 +1683,10 @@ function mapEventToResponse(
  * Results are cached by week; cache TTL is 24 hours.
  */
 export async function getEvents(familyId: string, query: unknown) {
+  performance.mark("getEvents-start");
   const supabase = await createClient();
-  const { data: userData } = await supabase.auth.getUser();
-  const userId = userData?.user?.id;
-
-  if (!userId) {
-    throw new Error("Not authenticated");
-  }
+  const user = await getCachedUser();
+  const userId = user.id;
 
   // Validate input
   const {
@@ -1895,6 +1893,11 @@ export async function getEvents(familyId: string, query: unknown) {
   const formattedEvents = paginatedEvents.map((item) =>
     mapEventToResponse(item.event, item.assignees, item.tags)
   );
+
+  performance.mark("getEvents-end");
+  performance.measure("getEvents", "getEvents-start", "getEvents-end");
+  const getEventsMeasure = performance.getEntriesByName("getEvents").pop();
+  console.log(`⏱️ getEvents took ${getEventsMeasure?.duration?.toFixed(2)}ms`);
 
   return {
     data: formattedEvents,

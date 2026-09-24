@@ -120,6 +120,7 @@ export const getUserFamilyMembership = cache(
  */
 export const getFamilyMembers = cache(
   async (familyId: string): Promise<FamilyMember[]> => {
+    performance.mark("getFamilyMembers-start");
     if (!familyId?.trim()) {
       throw new Error("Family ID is required");
     }
@@ -163,6 +164,19 @@ export const getFamilyMembers = cache(
       is_child: member.profiles?.is_child ?? false,
       avatar_url: member.profiles?.avatar_url ?? undefined,
     }));
+
+    performance.mark("getFamilyMembers-end");
+    performance.measure(
+      "getFamilyMembers",
+      "getFamilyMembers-start",
+      "getFamilyMembers-end"
+    );
+    const getFamilyMembersMeasure = performance
+      .getEntriesByName("getFamilyMembers")
+      .pop();
+    console.log(
+      `⏱️ getFamilyMembers took ${getFamilyMembersMeasure?.duration?.toFixed(2)}ms`
+    );
 
     return members;
   }
