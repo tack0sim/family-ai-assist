@@ -1,6 +1,6 @@
 # Family Assist
 
-[![Version: v0.4.2-beta](https://img.shields.io/badge/version-v0.4.2--beta-blue)](./package.json)
+[![Version: v0.5.0-beta](https://img.shields.io/badge/version-v0.5.0--beta-blue)](./package.json)
 [![Status: Beta](https://img.shields.io/badge/status-beta-orange)]()
 [![Node.js: 24+](https://img.shields.io/badge/node.js-24+-green)](./.nvmrc)
 [![TypeScript](https://img.shields.io/badge/typescript-strict-blue)]()
