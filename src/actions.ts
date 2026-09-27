@@ -19,7 +19,6 @@ import {
   createChildProfileSchema,
   eventTagSchema,
 } from "@/lib/schemas/settings";
-import { getCachedUser } from "@/lib/supabase/cached";
 import { checkUserFamilyContext } from "@/lib/supabase/check-family";
 import {
   getFamilyMembers,
@@ -1685,8 +1684,15 @@ function mapEventToResponse(
 export async function getEvents(familyId: string, query: unknown) {
   performance.mark("getEvents-start");
   const supabase = await createClient();
-  const user = await getCachedUser();
-  const userId = user.id;
+
+  // Get the fast authenticated user's claims from Supabase auth server (no DB hit)
+  const { data } = await supabase.auth.getClaims();
+  const user = data?.claims;
+  const userId = user?.sub;
+
+  if (!userId) {
+    throw new Error("Not authenticated");
+  }
 
   // Validate input
   const {
@@ -1864,7 +1870,7 @@ export async function getEvents(familyId: string, query: unknown) {
   }
 
   // Apply visibility filter: only show events user can view
-  const isAdmin = (await validateAdminAccess(userId, familyId)).isAdmin;
+  const isAdmin = membership?.role === "admin";
 
   const visibleEvents = filtered.filter((item) => {
     // Family events are visible to all family members

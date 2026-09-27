@@ -6,7 +6,6 @@ import { CalendarContainer } from "@/components/calendar/calendar-container.clie
 import { LandingPage } from "@/components/landing-page";
 import { Spinner } from "@/components/ui/spinner";
 import { CalendarProvider } from "@/lib/calendar-provider";
-import { getCachedUser } from "@/lib/supabase/cached";
 import { checkUserFamilyContext } from "@/lib/supabase/check-family";
 import { getFamilyMembers } from "@/lib/supabase/family";
 import { createClient } from "@/lib/supabase/server";
@@ -64,13 +63,13 @@ export default async function Home() {
     return <LandingPage />;
   }
 
-  // If claims exist, get the cached user (populated by middleware)
-  const user = await getCachedUser();
+  // Get the user ID from auth claims
+  const user = data?.claims;
+  const userId = user?.sub;
 
   // Check family context and get familyId
-  const { exists: hasFamilyContext, familyId } = await checkUserFamilyContext(
-    user.id
-  );
+  const { exists: hasFamilyContext, familyId } =
+    await checkUserFamilyContext(userId);
 
   if (!hasFamilyContext) {
     redirect("/onboarding");
