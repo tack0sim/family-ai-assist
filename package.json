@@ -49,11 +49,11 @@
     "fix": "ultracite fix",
     "email:dev": "email dev"
   },
-  "version": "0.5.1-beta",
+  "version": "0.5.2-beta",
   "private": true,
   "packageManager": "pnpm@11.5.0",
   "engines": {
-    "node": ">=24.0.0",
+    "node": ">=24.22.1",
     "pnpm": ">=11.0.0"
   }
 }
